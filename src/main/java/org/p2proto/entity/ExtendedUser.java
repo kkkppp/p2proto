@@ -6,7 +6,7 @@ import javax.persistence.*;
 
 @Data
 @Entity
-@Table(name = "extended_users")
+@Table(name = "users")
 public class ExtendedUser {
 
     @Id
@@ -14,9 +14,12 @@ public class ExtendedUser {
 
     private String username;
     private String email;
+    @Column(name="first_name")
     private String firstName;
+    @Column(name="last_name")
     private String lastName;
     @Transient
+    @Column(name="password_hash")
     private String password;
-    private String additionalInfo;
+    //private String additionalInfo;
 }
