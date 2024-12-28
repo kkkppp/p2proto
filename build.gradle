@@ -1,0 +1,119 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+	  url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+	classpath 'com.bmuschko:gradle-cargo-plugin:2.9.0'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'com.bmuschko.cargo'
+
+group 'org.p2proto'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = '1.8'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Framework
+    implementation 'org.springframework:spring-context:5.3.29'
+    implementation 'org.springframework:spring-webmvc:5.3.29'
+    implementation 'org.springframework:spring-jdbc:5.3.29'
+    implementation 'org.springframework:spring-tx:5.3.29'
+    implementation 'org.springframework:spring-orm:5.3.29'
+
+    // Spring Data JPA
+    implementation 'org.springframework.data:spring-data-jpa:2.7.12'
+
+    // Hibernate
+    implementation 'org.hibernate:hibernate-core:5.6.15.Final'
+
+    // Spring Security
+    implementation 'org.springframework.security:spring-security-core:5.8.0'
+    implementation 'org.springframework.security:spring-security-web:5.8.0'
+    implementation 'org.springframework.security:spring-security-config:5.8.0'
+    implementation 'org.springframework.security:spring-security-oauth2-client:5.8.0'
+    implementation 'org.springframework.security:spring-security-oauth2-jose:5.8.0'
+
+    // Keycloak Admin Client
+    implementation 'org.keycloak:keycloak-admin-client:21.1.1'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.28'
+    annotationProcessor 'org.projectlombok:lombok:1.18.28'
+
+    // PostgreSQL Driver
+    runtimeOnly 'org.postgresql:postgresql:42.6.0'
+
+    // Servlet API
+    compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
+
+    // JSON Processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:4.11.0'
+
+    // SLF4J API
+    implementation 'org.slf4j:slf4j-api:1.7.36' // Latest stable version
+
+    // Logback (includes SLF4J binding)
+    implementation 'ch.qos.logback:logback-classic:1.2.11' // Latest stable version
+
+    implementation 'org.yaml:snakeyaml:1.33'
+
+    implementation 'javax.servlet:jstl:1.2'
+
+    // Exclude other logging frameworks if present
+    configurations {
+        all {
+            //exclude group: 'commons-logging', module: 'commons-logging'
+            exclude group: 'log4j', module: 'log4j'
+            exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
+            exclude group: 'org.slf4j', module: 'slf4j-simple'
+            exclude group: 'org.slf4j', module: 'slf4j-jdk14'
+        }
+    }
+}
+
+war {
+    archiveFileName = 'p2proto.war'  // Set the WAR file name here
+}
+
+test {
+    useJUnitPlatform()
+}
+
+cargo {
+    containerId = 'tomcat9x' // Use 'tomcat10x' if you're using Tomcat 10
+    port = 8080
+
+    deployable {
+        file = file('build/libs/p2proto.war') // Adjust the path if necessary
+        context = 'p2proto' // The context path for your application
+    }
+
+    remote {
+        hostname = 'localhost' // Change to your server's hostname or IP
+        username = 'robot' // Tomcat Manager username
+        password = 'robot' // Tomcat Manager password
+    }
+
+    local {
+        homeDir = file('/opt/tomcat')
+    }
+}
+
+tasks.named('cargoRedeployRemote') {
+    dependsOn war
+}
