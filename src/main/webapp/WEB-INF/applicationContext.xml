@@ -33,7 +33,7 @@
     <!-- DataSource -->
     <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="org.postgresql.Driver"/>
-        <property name="url" value="jdbc:postgresql://localhost:5432/platform"/>
+        <property name="url" value="jdbc:postgresql://localhost:5432/platform?currentSchema=platform"/>
         <property name="username" value="platform"/>
         <property name="password" value="qwerty"/>
     </bean>

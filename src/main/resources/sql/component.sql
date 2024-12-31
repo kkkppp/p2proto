@@ -8,9 +8,15 @@ create user platform with password 'qwerty';
 
 \connect platform
 
+create schema keycloak;
 GRANT ALL ON SCHEMA public TO keycloak;
-
+GRANT ALL ON SCHEMA keycloak TO keycloak;
+create schema platform;
 GRANT ALL ON SCHEMA public TO platform;
+GRANT ALL ON SCHEMA platform TO platform;
+GRANT ALL ON SCHEMA platform TO keycloak;
+
+SET search_path TO platform;
 
 -- Enable the uuid-ossp extension for UUID generation (PostgreSQL specific)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -49,10 +55,11 @@ CREATE INDEX idx_user_attributes_user_id ON user_attributes(user_id);
 CREATE INDEX idx_user_attributes_name ON user_attributes(name);
 CREATE INDEX idx_user_attributes_value ON user_attributes(value);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users TO keycloak;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_attributes TO keycloak;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE platform.users TO keycloak;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE platform.user_attributes TO keycloak;
 
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO platform;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA platform TO platform;
 
 insert into users(username, email, first_name, last_name, password_hash) values ('admin', 'admin@example.com','Admin','Account','$2a$10$F.RKkkj5BaSipxxpAQnx2.dogjoEsBNvgSLAwvcgkvQcUYThxke52');
 insert into users(username, email, first_name, last_name, password_hash) values ('user','user@example.com','User','Account','$2a$10$GScPuSmLxLwwdOCmar1abOCXr9xSogz/1/ABBKRXy8YMAnS6cUqr2');
