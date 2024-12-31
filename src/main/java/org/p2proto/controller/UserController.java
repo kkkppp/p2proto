@@ -5,6 +5,7 @@ import org.p2proto.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 
 @Controller
 @RequestMapping("/users")
@@ -43,7 +45,7 @@ public class UserController {
     }
 
     @GetMapping("/edit/{id}")
-    public String editUser(@PathVariable String id, Model model) {
+    public String editUser(@PathVariable UUID id, Model model) {
         log.info("entered editusers");
         ExtendedUser user = userService.getUserById(id);
         model.addAttribute("user", user);
@@ -53,14 +55,16 @@ public class UserController {
     @PostMapping("/save")
     public String saveUser(@Valid @ModelAttribute ExtendedUser user, BindingResult result, Model model) {
         if (result.hasErrors()) {
-            if (user.getId() == null || user.getId().isEmpty()) {
+            if (user.getId() == null) {
                 return "userCreate";
             } else {
                 return "userEdit";
             }
         }
-
-        if (user.getId() == null || user.getId().isEmpty()) {
+        if (user.getPassword() != null) {
+            user.setPasswordHash(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt(10)));
+        }
+        if (user.getId() == null) {
             log.info("Saving new user: {}", user.getUsername());
             userService.saveUser(user);
         } else {
@@ -71,7 +75,7 @@ public class UserController {
     }
 
     @GetMapping("/delete/{id}")
-    public String deleteUser(@PathVariable String id) {
+    public String deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
         return "redirect:/users";
     }

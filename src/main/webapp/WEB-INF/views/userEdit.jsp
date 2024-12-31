@@ -6,7 +6,7 @@
 </head>
 <body>
 <h2>Edit User</h2>
-<form:form method="POST" action="/users/save" modelAttribute="user">
+<form:form method="POST" action="${pageContext.request.contextPath}/users/save" modelAttribute="user">
     <form:hidden path="id" />
     <table>
         <tr>
@@ -29,7 +29,7 @@
         <tr>
             <td colspan="2">
                 <input type="submit" value="Save" />
-                <a href="/users">Cancel</a>
+                <a href="${pageContext.request.contextPath}/users">Cancel</a>
             </td>
         </tr>
     </table>

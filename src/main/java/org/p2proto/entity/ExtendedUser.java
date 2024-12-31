@@ -1,8 +1,10 @@
 package org.p2proto.entity;
 
 import lombok.Data;
+import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -10,7 +12,13 @@ import javax.persistence.*;
 public class ExtendedUser {
 
     @Id
-    private String id; // Keycloak User ID
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(
+            name = "UUID",
+            strategy = "org.hibernate.id.UUIDGenerator"
+    )
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
 
     private String username;
     private String email;
@@ -18,8 +26,9 @@ public class ExtendedUser {
     private String firstName;
     @Column(name="last_name")
     private String lastName;
-    @Transient
     @Column(name="password_hash")
+    private String passwordHash;
+    @Transient
     private String password;
     //private String additionalInfo;
 }

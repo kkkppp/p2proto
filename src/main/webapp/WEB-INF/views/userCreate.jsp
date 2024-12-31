@@ -23,6 +23,27 @@
                 <form:errors path="email" cssClass="error" />
             </td>
         </tr>
+        <tr>
+            <td>First Name:</td>
+            <td>
+                <form:input path="firstName" />
+                <form:errors path="firstName" cssClass="error" />
+            </td>
+        </tr>
+        <tr>
+            <td>Last Name:</td>
+            <td>
+                <form:input path="lastName" />
+                <form:errors path="lastName" cssClass="error" />
+            </td>
+        </tr>
+        <tr>
+            <td>Password:</td>
+            <td>
+                <form:input path="password" />
+                <form:errors path="password" cssClass="error" />
+            </td>
+        </tr>
         <!-- Add more fields with validation as necessary -->
         <tr>
             <td colspan="2">

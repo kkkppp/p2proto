@@ -36,5 +36,5 @@
 
     <!-- Suppress verbose logging from other libraries -->
     <logger name="org.springframework" level="DEBUG" />
-    <logger name="org.hibernate" level="WARN" />
+    <logger name="org.hibernate" level="DEBUG" />
 </configuration>
