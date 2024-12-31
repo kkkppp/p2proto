@@ -1,7 +1,7 @@
 <html>
 <head><title>Home</title></head>
 <body>
-    <h1>Welcome, ${user.name}!</h1>
+    <h1>Welcome, ${username}!</h1>
     <ul>
         <li><a href="${pageContext.request.contextPath}/users">Manage Users</a></li>
         <li><a href="${pageContext.request.contextPath}/groups">Manage Groups</a></li>
