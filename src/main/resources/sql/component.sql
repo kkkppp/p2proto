@@ -12,10 +12,11 @@ CREATE TYPE component_type_enum AS ENUM (
 );
 
 CREATE TYPE label_type_enum AS ENUM (
-    'SINGULAR',
-    'PLURAL',
+    'LABEL',
+    'PLURAL_LABEL',
     'DESCRIPTION',
-    'SHORT_DESC'
+    'INSTRUCTION',
+    'POPUP'
 );
 
 -- 3) Parent table: component
@@ -34,15 +35,17 @@ CREATE TABLE table_component (
     CONSTRAINT fk_tablecomponent_component
         FOREIGN KEY (id)
         REFERENCES component (id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT l_name UNIQUE on (logical_name),
+    CONSTRAINT p_name UNIQUE on (physical_name)
 );
 
 -- 4b) field_component
 CREATE TABLE field_component (
     id UUID PRIMARY KEY,
     table_id UUID NOT NULL,
-    data_type_code TEXT NOT NULL,
-    field_order INT,
+    name TEXT NOT NULL,
+    data_type int NOT NULL,
     CONSTRAINT fk_fieldcomponent_component
         FOREIGN KEY (id)
         REFERENCES component (id)
@@ -56,8 +59,8 @@ CREATE TABLE field_component (
 -- 4c) page_component
 CREATE TABLE page_component (
     id UUID PRIMARY KEY,
-    page_code TEXT NOT NULL,
-    page_path TEXT,
+    page_name TEXT NOT NULL,
+    page_url TEXT,
     CONSTRAINT fk_pagecomponent_component
         FOREIGN KEY (id)
         REFERENCES component (id)
@@ -68,7 +71,7 @@ CREATE TABLE page_component (
 CREATE TABLE element_component (
     id UUID PRIMARY KEY,
     page_id UUID NOT NULL,
-    element_code TEXT NOT NULL,
+    element_name TEXT NOT NULL,
     element_selector TEXT,
     CONSTRAINT fk_elementcomponent_component
         FOREIGN KEY (id)
@@ -82,13 +85,13 @@ CREATE TABLE element_component (
 
 -- 5) label
 CREATE TABLE label (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     component_id UUID NOT NULL,
-    language_code VARCHAR(10) NOT NULL,
+    language_code int NOT NULL,
     label_type label_type_enum NOT NULL,
     label_text TEXT NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (component_id, language_code, label_type)
     CONSTRAINT fk_label_component
         FOREIGN KEY (component_id)
         REFERENCES component (id)
