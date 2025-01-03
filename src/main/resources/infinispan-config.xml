@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<infinispan
+        xmlns="urn:infinispan:config:15.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:infinispan:config:15.0 https://infinispan.org/schemas/infinispan-config-15.0.xsd">
+
+    <cache-container default-cache="default">
+        <local-cache name="default">
+            <memory max-count="1000" when-full="LRU"/>
+            <expiration lifespan="600000"/> <!-- 10 minutes -->
+        </local-cache>
+
+        <local-cache name="myCache">
+            <memory max-count="500" when-full="LRU"/>
+            <expiration lifespan="300000"/> <!-- 5 minutes -->
+        </local-cache>
+    </cache-container>
+</infinispan>
