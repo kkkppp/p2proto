@@ -1,20 +1,13 @@
 package org.p2proto.controller;
 
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-
-import java.security.Principal;
 
 @Controller
 public class HomeController {
 
     @GetMapping("/")
-    public String showIndex(Principal principal, Model model) {
-        if (principal != null) {
-            String username = principal.getName();
-            model.addAttribute("username", username);
-        }
-        return "index";  // Maps to index.jsp
+    public String showIndex() {
+        return "index";  // This should map to index.jsp
     }
 }
