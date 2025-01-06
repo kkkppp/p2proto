@@ -6,12 +6,12 @@
 
     <cache-container default-cache="default">
         <local-cache name="default">
-            <memory max-count="1000" when-full="LRU"/>
+            <memory max-count="1000" when-full="REMOVE"/>
             <expiration lifespan="600000"/> <!-- 10 minutes -->
         </local-cache>
 
         <local-cache name="myCache">
-            <memory max-count="500" when-full="LRU"/>
+            <memory max-count="500" when-full="REMOVE"/>
             <expiration lifespan="300000"/> <!-- 5 minutes -->
         </local-cache>
     </cache-container>
