@@ -5,14 +5,9 @@
         xsi:schemaLocation="urn:infinispan:config:15.0 https://infinispan.org/schemas/infinispan-config-15.0.xsd">
 
     <cache-container default-cache="default">
-        <local-cache name="default">
-            <memory max-count="1000" when-full="REMOVE"/>
-            <expiration lifespan="600000"/> <!-- 10 minutes -->
-        </local-cache>
-
-        <local-cache name="myCache">
-            <memory max-count="500" when-full="REMOVE"/>
-            <expiration lifespan="300000"/> <!-- 5 minutes -->
+        <local-cache name="tables">
+            <memory max-count="100" when-full="REMOVE"/>
+            <expiration lifespan="0"/>
         </local-cache>
     </cache-container>
 </infinispan>
