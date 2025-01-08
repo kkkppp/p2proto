@@ -19,8 +19,8 @@
         <tr>
             <td>${user.username}</td>
             <td>${user.email}</td>
-            <td>${user.firstName}</td>
-            <td>${user.lastName}</td>
+            <td>${user.first_name}</td>
+            <td>${user.last_name}</td>
             <td>
                 <a href="${pageContext.request.contextPath}/users/edit/${user.id}">Edit</a> |
                 <a href="${pageContext.request.contextPath}/users/delete/${user.id}" onclick="return confirm('Are you sure?');">Delete</a>
