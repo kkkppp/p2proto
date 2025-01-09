@@ -41,12 +41,13 @@ public class TableController {
 
         // 3) If fieldsToRender is null or empty, we’ll render all columns
         //    Otherwise, we’ll just render the subset
-        model.addAttribute("allFields", allColumns);
-        model.addAttribute("fieldsToRender", fieldsToRender);
+        model.addAttribute("allFields", String.join(",", allColumns));
+        model.addAttribute("fieldsToRender", String.join(",", fieldsToRender));
+        model.addAttribute("columnLabels", tableMetadata.getColumnLabels());
         model.addAttribute("users", users);
 
         // Return the name of the JSP (assuming we have a view resolver that maps to /WEB-INF/jsp/ by default)
-        return "userList";
+        return "tableView";
     }
 
 /*

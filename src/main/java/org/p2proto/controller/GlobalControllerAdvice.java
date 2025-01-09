@@ -14,7 +14,7 @@ public class GlobalControllerAdvice {
     @ModelAttribute("menu")
     public List<MenuItem> populateMenu() {
         MenuItem tables = new MenuItem("Tables", "#", Arrays.asList(
-                new MenuItem("Manage Users", "/table/users")
+                new MenuItem("Manage Users", "/table/users?fields=username,email,first_name,last_name")
         ));
 
         MenuItem access = new MenuItem("Access", "#", Arrays.asList(
