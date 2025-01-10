@@ -1,0 +1,259 @@
+/* Reset default browser styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Keycloak Color Scheme */
+:root {
+    --keycloak-primary: #007bff; /* Blue */
+    --keycloak-secondary: #6c757d; /* Gray */
+    --keycloak-background: #f8f9fa; /* Light Gray */
+    --keycloak-text: #ffffff; /* White */
+    --keycloak-hover: #0056b3; /* Darker Blue */
+    --keycloak-content-bg: #ffffff; /* White for content area */
+    --keycloak-content-text: #212529; /* Dark text */
+    --keycloak-active-link: #0056b3; /* Active link color */
+    --keycloak-error: #dc3545; /* Red for errors */
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    background-color: var(--keycloak-background);
+    color: var(--keycloak-content-text);
+    margin: 0;
+}
+
+/* Left Sidebar */
+.sidebar {
+    width: 250px;
+    background-color: var(--keycloak-primary);
+    display: flex;
+    flex-direction: column;
+    padding-top: 20px;
+    position: fixed;
+    height: 100%;
+    overflow: auto;
+}
+
+.sidebar h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 1.5em;
+    color: var(--keycloak-text);
+}
+
+.sidebar ul {
+    list-style-type: none;
+}
+
+.sidebar ul li {
+    position: relative;
+}
+
+/* Top-level menu items */
+.sidebar ul li > a {
+    display: block;
+    padding: 15px 20px;
+    color: var(--keycloak-text);
+    text-decoration: none;
+    transition: background-color 0.3s;
+    cursor: pointer;
+}
+
+.sidebar ul li > a:hover, .sidebar ul li > a.active-link {
+    background-color: var(--keycloak-hover);
+}
+
+/* Submenu container */
+.sidebar ul li ul {
+    list-style-type: none;
+    display: none; /* Hidden by default */
+    background-color: #0056b3;
+}
+
+/* Submenu items */
+.sidebar ul li ul li a {
+    padding-left: 40px; /* Indent submenu items */
+    background-color: #0056b3;
+    color: var(--keycloak-text);
+    text-decoration: none;
+    transition: background-color 0.3s;
+    cursor: pointer;
+}
+
+.sidebar ul li ul li a:hover, .sidebar ul li ul li a.active-link {
+    background-color: var(--keycloak-hover);
+}
+
+/* Show submenu when parent has 'open' class */
+.sidebar ul li.open > ul {
+    display: block;
+}
+
+/* Submenu toggle indicator */
+.sidebar ul li > a.has-submenu::after {
+    content: "\25B6"; /* Right-pointing arrow */
+    float: right;
+    transition: transform 0.3s;
+}
+
+.sidebar ul li.open > a.has-submenu::after {
+    transform: rotate(90deg); /* Down-pointing arrow */
+}
+
+/* Main Content Area */
+.main-content {
+    margin-left: 250px; /* Same as sidebar width */
+    padding: 20px;
+    width: calc(100% - 250px);
+    height: 100vh;
+    overflow-y: auto;
+    background-color: var(--keycloak-content-bg);
+    color: var(--keycloak-content-text);
+}
+
+.welcome {
+    margin-bottom: 20px;
+    font-size: 1.8em;
+    color: var(--keycloak-content-text);
+}
+
+/* Loading Indicator */
+.loading {
+    font-size: 1.2em;
+    color: var(--keycloak-primary);
+}
+
+/* Error Message */
+.error-message {
+    font-size: 1.2em;
+    color: var(--keycloak-error);
+    font-weight: bold;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .main-content {
+        margin-left: 200px;
+        width: calc(100% - 200px);
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sidebar ul li {
+        display: block;
+    }
+
+    .sidebar ul li > a {
+        padding: 10px;
+    }
+
+    .sidebar ul li ul li a {
+        padding-left: 30px;
+    }
+}
+
+/* Users Table Styles */
+.user-table {
+    width: 100%;
+    border-collapse: separate; /* Changed from collapse to separate */
+    border-spacing: 0 10px; /* Adds 10px vertical spacing between rows */
+    margin-bottom: 20px;
+    background-color: var(--keycloak-content-bg); /* Ensures consistent background */
+}
+
+.user-table th, .user-table td {
+    border: 1px solid #dee2e6;
+    padding: 15px 20px;
+    text-align: left;
+    background-color: #fff;
+    vertical-align: middle;
+}
+
+.user-table th {
+    background-color: var(--keycloak-secondary);
+    color: var(--keycloak-text);
+}
+
+.user-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.user-table tr:hover {
+    background-color: #e9ecef;
+}
+
+/* Responsive Table */
+@media (max-width: 768px) {
+    .user-table th, .user-table td {
+        padding: 8px 10px;
+    }
+}
+
+/* Button Styles */
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    margin: 2px; /* Added margin to separate buttons */
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.btn-primary {
+    background-color: var(--keycloak-primary);
+    color: var(--keycloak-text);
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #0069d9; /* Darker shade for hover */
+}
+
+.btn-secondary {
+    background-color: var(--keycloak-secondary);
+    color: var(--keycloak-text);
+    border: none;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268; /* Darker shade for hover */
+}
+
+.btn-danger {
+    background-color: var(--keycloak-error);
+    color: var(--keycloak-text);
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #c82333; /* Darker shade for hover */
+}
+
+/* Optional: Add box-shadow on hover for depth */
+.btn:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+

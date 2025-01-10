@@ -9,181 +9,15 @@
             <c:otherwise>Home</c:otherwise>
         </c:choose>
     </title>
-    <style>
-        /* Reset default browser styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-        /* Keycloak Color Scheme */
-        :root {
-            --keycloak-primary: #007bff; /* Blue */
-            --keycloak-secondary: #6c757d; /* Gray */
-            --keycloak-background: #f8f9fa; /* Light Gray */
-            --keycloak-text: #ffffff; /* White */
-            --keycloak-hover: #0056b3; /* Darker Blue */
-            --keycloak-content-bg: #ffffff; /* White for content area */
-            --keycloak-content-text: #212529; /* Dark text */
-            --keycloak-active-link: #0056b3; /* Active link color */
-            --keycloak-error: #dc3545; /* Red for errors */
-        }
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            height: 100vh;
-            background-color: var(--keycloak-background);
-            color: var(--keycloak-content-text);
-            margin: 0;
-        }
-
-        /* Left Sidebar */
-        .sidebar {
-            width: 250px;
-            background-color: var(--keycloak-primary);
-            display: flex;
-            flex-direction: column;
-            padding-top: 20px;
-            position: fixed;
-            height: 100%;
-            overflow: auto;
-        }
-
-        .sidebar h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 1.5em;
-            color: var(--keycloak-text);
-        }
-
-        .sidebar ul {
-            list-style-type: none;
-        }
-
-        .sidebar ul li {
-            position: relative;
-        }
-
-        /* Top-level menu items */
-        .sidebar ul li > a {
-            display: block;
-            padding: 15px 20px;
-            color: var(--keycloak-text);
-            text-decoration: none;
-            transition: background-color 0.3s;
-            cursor: pointer;
-        }
-
-        .sidebar ul li > a:hover, .sidebar ul li > a.active-link {
-            background-color: var(--keycloak-hover);
-        }
-
-        /* Submenu container */
-        .sidebar ul li ul {
-            list-style-type: none;
-            display: none; /* Hidden by default */
-            background-color: #0056b3;
-        }
-
-        /* Submenu items */
-        .sidebar ul li ul li a {
-            padding-left: 40px; /* Indent submenu items */
-            background-color: #0056b3;
-            color: var(--keycloak-text);
-            text-decoration: none;
-            transition: background-color 0.3s;
-            cursor: pointer;
-        }
-
-        .sidebar ul li ul li a:hover, .sidebar ul li ul li a.active-link {
-            background-color: var(--keycloak-hover);
-        }
-
-        /* Show submenu when parent has 'open' class */
-        .sidebar ul li.open > ul {
-            display: block;
-        }
-
-        /* Submenu toggle indicator */
-        .sidebar ul li > a.has-submenu::after {
-            content: "\25B6"; /* Right-pointing arrow */
-            float: right;
-            transition: transform 0.3s;
-        }
-
-        .sidebar ul li.open > a.has-submenu::after {
-            transform: rotate(90deg); /* Down-pointing arrow */
-        }
-
-        /* Main Content Area */
-        .main-content {
-            margin-left: 250px; /* Same as sidebar width */
-            padding: 20px;
-            width: calc(100% - 250px);
-            height: 100vh;
-            overflow-y: auto;
-            background-color: var(--keycloak-content-bg);
-            color: var(--keycloak-content-text);
-        }
-
-        .welcome {
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            color: var(--keycloak-content-text);
-        }
-
-        /* Loading Indicator */
-        .loading {
-            font-size: 1.2em;
-            color: var(--keycloak-primary);
-        }
-
-        /* Error Message */
-        .error-message {
-            font-size: 1.2em;
-            color: var(--keycloak-error);
-            font-weight: bold;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 200px;
-            }
-
-            .main-content {
-                margin-left: 200px;
-                width: calc(100% - 200px);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-
-            .main-content {
-                margin-left: 0;
-                width: 100%;
-            }
-
-            .sidebar ul li {
-                display: block;
-            }
-
-            .sidebar ul li > a {
-                padding: 10px;
-            }
-
-            .sidebar ul li ul li a {
-                padding-left: 30px;
-            }
-        }
-    </style>
+    <!-- Link to External CSS -->
+    <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/resources/css/styles.css">
     <script>
         // Object to cache loaded content
         const contentCache = {};
@@ -339,34 +173,8 @@
     </script>
 </head>
 <body>
-<!-- Left Sidebar -->
-<div class="sidebar">
-    <h1>Platform 2</h1>
-    <ul>
-        <c:forEach var="menuItem" items="${menu}">
-            <li class="${menuItem.title == activeMenu ? 'open' : ''}">
-                <!-- Parent Menu Item -->
-                <a href="#"
-                   class="${not empty menuItem.children ? 'has-submenu' : ''}">
-                        ${menuItem.title}
-                </a>
-                <c:if test="${not empty menuItem.children}">
-                    <ul>
-                        <c:forEach var="subMenu" items="${menuItem.children}">
-                            <li>
-                                <!-- Submenu Item -->
-                                <a href="${pageContext.request.contextPath}${subMenu.url}"
-                                   data-url="${pageContext.request.contextPath}${subMenu.url}">
-                                        ${subMenu.title}
-                                </a>
-                            </li>
-                        </c:forEach>
-                    </ul>
-                </c:if>
-            </li>
-        </c:forEach>
-    </ul>
-</div>
+<!-- Include Sidebar -->
+<jsp:include page="/WEB-INF/views/includes/sidebar.jsp" />
 
 <!-- Main Content Area -->
 <div class="main-content">

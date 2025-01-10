@@ -1,18 +1,13 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<!DOCTYPE html>
-<html>
-<head>
-  <title>User List</title>
-</head>
-<body>
+
+<!-- Users List Partial View -->
 <h2>Users</h2>
-<a href="${pageContext.request.contextPath}/users/create">Create New User</a>
+<a href="${pageContext.request.contextPath}/users/create"
+   data-url="${pageContext.request.contextPath}/users/create"
+   class="btn btn-primary">Create New User</a>
 <br/><br/>
 
-<!--
-    We'll combine allFields (the complete list of columns) and fieldsToRender
-    (the optional parameter) in a single "renderFields" variable.
--->
+<!-- Determine which fields to render -->
 <c:set var="renderFields">
   <c:choose>
     <c:when test="${not empty fieldsToRender}">${fieldsToRender}</c:when>
@@ -20,30 +15,38 @@
   </c:choose>
 </c:set>
 
-<table border="1">
+<!-- Users Table -->
+<table class="user-table">
+  <thead>
   <tr>
-    <!-- Dynamically render a <th> for each field, but use the label from "columnLabels" -->
+    <!-- Dynamically render table headers -->
     <c:forEach var="field" items="${renderFields}">
       <th>${columnLabels[field]}</th>
     </c:forEach>
     <th>Actions</th>
   </tr>
-
-  <!-- For each user (a Map<String, Object>), loop over the fields and output the value -->
+  </thead>
+  <tbody>
+  <!-- Iterate over each user and render table rows -->
   <c:forEach var="user" items="${users}">
     <tr>
       <c:forEach var="field" items="${renderFields}">
-        <!-- user[field] retrieves the Map value for the given column key -->
         <td>${user[field]}</td>
       </c:forEach>
-      <!-- Example: "id" is the primary key in this table -->
       <td>
-        <a href="${pageContext.request.contextPath}/users/edit/${user['id']}">Edit</a> |
+        <!-- Edit Button -->
+        <a href="${pageContext.request.contextPath}/users/edit/${user['id']}"
+           data-url="${pageContext.request.contextPath}/users/edit/${user['id']}"
+           class="btn btn-secondary">Edit</a>
+
+        <!-- Delete Button -->
         <a href="${pageContext.request.contextPath}/users/delete/${user['id']}"
-           onclick="return confirm('Are you sure?');">Delete</a>
+           class="btn btn-danger"
+           onclick="return confirm('Are you sure you want to delete this user?'); loadContent(event, this);">
+          Delete
+        </a>
       </td>
     </tr>
   </c:forEach>
+  </tbody>
 </table>
-</body>
-</html>

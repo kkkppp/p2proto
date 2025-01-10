@@ -12,11 +12,15 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @EnableWebSecurity
+@EnableWebMvc
 @ComponentScan(basePackages = "org.p2proto.config")
-public class SecurityConfig {
+public class SecurityConfig implements WebMvcConfigurer {
 
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
@@ -47,5 +51,14 @@ public class SecurityConfig {
                 .logoutSuccessUrl("/");
 
         return http.build();
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Map all /resources/** URLs to the /resources/ directory in webapp
+        registry.addResourceHandler("/resources/**")
+                .addResourceLocations("/resources/")
+                .setCachePeriod(3600) // Optional: cache for 1 hour
+                .resourceChain(true);
     }
 }
