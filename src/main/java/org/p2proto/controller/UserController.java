@@ -41,7 +41,7 @@ public class UserController {
         log.info("Entered createUserForm");
         ExtendedUser user = new ExtendedUser();
         model.addAttribute("user", user);
-        return "userCreate"; // Ensure this view exists
+        return "createRecordContent"; // Ensure this view exists
     }
 
     @GetMapping("/edit/{id}")

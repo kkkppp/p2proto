@@ -18,6 +18,7 @@
     --keycloak-error: #dc3545; /* Red for errors */
 }
 
+/* Body Styling */
 body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -105,77 +106,10 @@ body {
     transform: rotate(90deg); /* Down-pointing arrow */
 }
 
-/* Main Content Area */
-.main-content {
-    margin-left: 250px; /* Same as sidebar width */
-    padding: 20px;
-    width: calc(100% - 250px);
-    height: 100vh;
-    overflow-y: auto;
-    background-color: var(--keycloak-content-bg);
-    color: var(--keycloak-content-text);
-}
-
-.welcome {
-    margin-bottom: 20px;
-    font-size: 1.8em;
-    color: var(--keycloak-content-text);
-}
-
-/* Loading Indicator */
-.loading {
-    font-size: 1.2em;
-    color: var(--keycloak-primary);
-}
-
-/* Error Message */
-.error-message {
-    font-size: 1.2em;
-    color: var(--keycloak-error);
-    font-weight: bold;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 200px;
-    }
-
-    .main-content {
-        margin-left: 200px;
-        width: calc(100% - 200px);
-    }
-}
-
-@media (max-width: 480px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-    }
-
-    .main-content {
-        margin-left: 0;
-        width: 100%;
-    }
-
-    .sidebar ul li {
-        display: block;
-    }
-
-    .sidebar ul li > a {
-        padding: 10px;
-    }
-
-    .sidebar ul li ul li a {
-        padding-left: 30px;
-    }
-}
-
 /* Users Table Styles */
 .user-table {
     width: 100%;
-    border-collapse: separate; /* Changed from collapse to separate */
+    border-collapse: separate; /* Changed from collapse to separate for spacing */
     border-spacing: 0 10px; /* Adds 10px vertical spacing between rows */
     margin-bottom: 20px;
     background-color: var(--keycloak-content-bg); /* Ensures consistent background */
@@ -183,40 +117,75 @@ body {
 
 .user-table th, .user-table td {
     border: 1px solid #dee2e6;
-    padding: 15px 20px;
+    padding: 15px 20px; /* Increased padding */
     text-align: left;
     background-color: #fff;
-    vertical-align: middle;
+    vertical-align: middle; /* Centers content vertically */
 }
 
+/* Table Header */
 .user-table th {
     background-color: var(--keycloak-secondary);
     color: var(--keycloak-text);
 }
 
-.user-table tr:nth-child(even) {
-    background-color: #f2f2f2;
+/* Zebra Striping */
+.user-table tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
 }
 
-.user-table tr:hover {
+.user-table tbody tr:nth-child(even) {
+    background-color: #ffffff;
+}
+
+/* Hover Effect */
+.user-table tbody tr:hover {
     background-color: #e9ecef;
 }
 
-/* Responsive Table */
-@media (max-width: 768px) {
-    .user-table th, .user-table td {
-        padding: 8px 10px;
-    }
+/* Form Styling */
+.create-user-form {
+    max-width: 600px;
+    margin: 0 auto;
 }
 
-/* Button Styles */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--keycloak-content-text);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-control:focus {
+    border-color: var(--keycloak-primary);
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Form Actions */
+.form-actions {
+    margin-top: 20px;
+}
+
 .btn {
     display: inline-block;
-    padding: 8px 16px;
-    margin: 2px; /* Added margin to separate buttons */
+    padding: 10px 20px;
+    margin-right: 10px;
     text-align: center;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 16px;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s, box-shadow 0.3s;
@@ -257,3 +226,58 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Error Message Styling */
+.error {
+    color: var(--keycloak-error);
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+/* Loading Indicator Styling */
+.loading {
+    font-size: 1.2em;
+    color: var(--keycloak-primary);
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Main Content Area */
+.main-content {
+    margin-left: 250px; /* Same as the sidebar width */
+    padding: 20px; /* Optional: Adds padding inside the main content */
+    width: calc(100% - 250px); /* Ensures the main content doesn't exceed the viewport */
+    overflow: auto; /* Allows scrolling if content overflows */
+    height: 100vh; /* Ensures the main content takes full viewport height */
+}
+
+/* Responsive Table */
+@media (max-width: 768px) {
+    .user-table th, .user-table td {
+        padding: 12px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sidebar ul li {
+        display: block;
+    }
+
+    .sidebar ul li > a {
+        padding: 10px;
+    }
+
+    .sidebar ul li ul li a {
+        padding-left: 30px;
+    }
+}

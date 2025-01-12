@@ -1,6 +1,7 @@
 package org.p2proto.controller;
 
 import org.p2proto.dto.TableMetadata;
+import org.p2proto.entity.ExtendedUser;
 import org.p2proto.repository.TableMetadataCrudRepository;
 import org.p2proto.util.TableMetadataUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,18 +46,14 @@ public class TableController {
         model.addAttribute("fieldsToRender", String.join(",", fieldsToRender));
         model.addAttribute("columnLabels", tableMetadata.getColumnLabels());
         model.addAttribute("users", users);
+        model.addAttribute("tableName", tableName);
 
         // Return the name of the JSP (assuming we have a view resolver that maps to /WEB-INF/jsp/ by default)
         return "tableView";
     }
-
-/*
-        @GetMapping("/{tableName}")
-        public String handleTable(
-                @PathVariable("tableName") String tableName,
-                Model model) {
-
-            return "tableView"; // The name of your view (e.g., JSP, Thymeleaf)
-        }
-*/
-}
+    @GetMapping("/{tableName}/create")
+    public String createUserForm(Model model) {
+        ExtendedUser user = new ExtendedUser();
+        model.addAttribute("user", user);
+        return "createRecordContent"; // Ensure this view exists
+    }}

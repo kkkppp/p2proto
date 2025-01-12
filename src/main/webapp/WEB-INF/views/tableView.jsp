@@ -2,9 +2,10 @@
 
 <!-- Users List Partial View -->
 <h2>Users</h2>
-<a href="${pageContext.request.contextPath}/users/create"
-   data-url="${pageContext.request.contextPath}/users/create"
-   class="btn btn-primary">Create New User</a>
+<a href="${pageContext.request.contextPath}/table/${tableName}/create"
+   data-url="${pageContext.request.contextPath}/table/${tableName}/create"
+   class="btn btn-primary"
+   onclick="loadContent(event, this);">Create New User</a>
 <br/><br/>
 
 <!-- Determine which fields to render -->
