@@ -1,10 +1,11 @@
 package org.p2proto.controller;
 
 import org.p2proto.dto.TableMetadata;
-import org.p2proto.entity.ExtendedUser;
+import org.p2proto.dto.TableMetadata.ColumnMetaData;
+import org.p2proto.model.record.FormField;
+import org.p2proto.model.record.RecordForm;
 import org.p2proto.repository.TableMetadataCrudRepository;
 import org.p2proto.util.TableMetadataUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/table")
@@ -25,35 +27,54 @@ public class TableController {
     public TableController(TableMetadataUtil util) {
         this.util = util;
     }
+
     @GetMapping("/{tableName}")
-    public String listUsers(
+    public String listRecords(
             @PathVariable("tableName") String tableName,
             @RequestParam(name = "fields", required = false) List<String> fieldsToRender,
             Model model
     ) {
-        // 1) Suppose you retrieve the TableMetadata for the "users" table
+        // Retrieve the TableMetadata for the given table name
         UUID tableID = util.findAll().get(tableName);
         TableMetadata tableMetadata = util.findByID(tableID);
-        List<String> allColumns = tableMetadata.getColumnNames();
 
-        // 2) Retrieve all user rows from your CRUD repository as maps
+        // Extract column information
+        List<String> allColumns = tableMetadata.getColumns().stream()
+                .map(ColumnMetaData::getName)
+                .collect(Collectors.toList());
+
+        // Retrieve all rows from the CRUD repository
         TableMetadataCrudRepository repo = new TableMetadataCrudRepository(util.getJdbcTemplate(), tableMetadata, "id");
-        List<Map<String, Object>> users = repo.findAll();
+        List<Map<String, Object>> records = repo.findAll();
 
-        // 3) If fieldsToRender is null or empty, we’ll render all columns
-        //    Otherwise, we’ll just render the subset
+        // Determine which fields to render
+        List<String> fieldsToShow = (fieldsToRender == null || fieldsToRender.isEmpty()) ? allColumns : fieldsToRender;
+
+        // Populate model attributes
         model.addAttribute("allFields", String.join(",", allColumns));
-        model.addAttribute("fieldsToRender", String.join(",", fieldsToRender));
-        model.addAttribute("columnLabels", tableMetadata.getColumnLabels());
-        model.addAttribute("users", users);
+        model.addAttribute("fieldsToRender", String.join(",", fieldsToShow));
+        model.addAttribute("columnLabels", tableMetadata.getColumns().stream()
+                .collect(Collectors.toMap(ColumnMetaData::getName, ColumnMetaData::getLabel)));
+        model.addAttribute("records", records);
         model.addAttribute("tableName", tableName);
 
-        // Return the name of the JSP (assuming we have a view resolver that maps to /WEB-INF/jsp/ by default)
         return "tableView";
     }
+
     @GetMapping("/{tableName}/create")
-    public String createUserForm(Model model) {
-        ExtendedUser user = new ExtendedUser();
-        model.addAttribute("user", user);
+    public String createRecordForm(@PathVariable("tableName") String tableName, Model model) {
+        UUID tableID = util.findAll().get(tableName);
+        TableMetadata tableMetadata = util.findByID(tableID);
+
+        // Build form fields based on the column metadata
+        List<FormField> fields = tableMetadata.getColumns().stream()
+                .map(ColumnMetaData::toFormField)
+                .collect(Collectors.toList());
+
+        RecordForm record = new RecordForm(fields);
+        model.addAttribute("tableName", tableName);
+        model.addAttribute("record", record);
+
         return "createRecordContent"; // Ensure this view exists
-    }}
+    }
+}

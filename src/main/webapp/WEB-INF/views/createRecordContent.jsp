@@ -1,57 +1,78 @@
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
-<%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-<!-- Create User Form -->
 <h2>Create New User</h2>
 
-<form:form method="POST" action="${pageContext.request.contextPath}/users/save" modelAttribute="user" class="create-user-form" aria-labelledby="createUserForm">
+<form:form method="POST" action="${pageContext.request.contextPath}/users/save" modelAttribute="record" class="create-user-form" aria-labelledby="createUserForm">
 
-  <!-- Username Field -->
-  <div class="form-group">
-    <label for="username">Username:</label>
-    <form:input path="username" id="username" class="form-control" aria-required="true" />
-    <form:errors path="username" cssClass="error" aria-live="polite" />
-  </div>
+  <c:forEach var="field" items="${record.fields}" varStatus="status">
+    <div class="form-group">
+      <label for="${field.name}">${field.label}:</label>
 
-  <!-- Email Field -->
-  <div class="form-group">
-    <label for="email">Email:</label>
-    <form:input path="email" id="email" class="form-control" aria-required="true" />
-    <form:errors path="email" cssClass="error" aria-live="polite" />
-  </div>
+      <c:choose>
+        <c:when test="${field.type == 'PASSWORD'}">
+          <form:password path="fields[${status.index}].value" id="${field.name}" class="form-control" aria-required="${field.required}" />
+        </c:when>
 
-  <!-- First Name Field -->
-  <div class="form-group">
-    <label for="firstName">First Name:</label>
-    <form:input path="firstName" id="firstName" class="form-control" />
-    <form:errors path="firstName" cssClass="error" aria-live="polite" />
-  </div>
+        <c:when test="${field.type == 'EMAIL'}">
+          <form:input path="fields[${status.index}].value" id="${field.name}" class="form-control" aria-required="${field.required}" type="email" />
+        </c:when>
 
-  <!-- Last Name Field -->
-  <div class="form-group">
-    <label for="lastName">Last Name:</label>
-    <form:input path="lastName" id="lastName" class="form-control" />
-    <form:errors path="lastName" cssClass="error" aria-live="polite" />
-  </div>
+        <c:when test="${field.type == 'SELECT'}">
+          <form:select path="fields[${status.index}].value" id="${field.name}" class="form-control" aria-required="${field.required}">
+            <form:option value="" label="-- Select --" />
+            <c:forEach var="option" items="${field.options}">
+              <form:option value="${option}" label="${option}" />
+            </c:forEach>
+          </form:select>
+        </c:when>
 
-  <!-- Password Field -->
-  <div class="form-group">
-    <label for="password">Password:</label>
-    <form:password path="password" id="password" class="form-control" aria-required="true" />
-    <form:errors path="password" cssClass="error" aria-live="polite" />
-  </div>
+        <c:when test="${field.type == 'RADIO'}">
+          <div>
+            <c:forEach var="option" items="${field.options}">
+              <label>
+                <input type="radio" name="fields[${status.index}].value" value="${option}" ${field.required ? 'required' : ''} />
+                  ${option}
+              </label>
+              &nbsp;&nbsp;
+            </c:forEach>
+          </div>
+        </c:when>
 
-  <!-- Add more fields with validation as necessary -->
+        <c:when test="${field.type == 'CHECKBOX'}">
+          <div>
+            <c:forEach var="option" items="${field.options}">
+              <label>
+                <input type="checkbox" name="fields[${status.index}].value" value="${option}" ${field.required ? 'required' : ''} />
+                  ${option}
+              </label>
+              &nbsp;&nbsp;
+            </c:forEach>
+          </div>
+        </c:when>
 
-  <!-- Form Actions -->
+        <c:otherwise>
+          <form:input path="fields[${status.index}].value" id="${field.name}" class="form-control" aria-required="${field.required}" />
+        </c:otherwise>
+      </c:choose>
+
+      <c:if test="${not empty field.errors}">
+        <div class="error" aria-live="polite">
+          <c:forEach var="error" items="${field.errors}">
+            <p>${error}</p>
+          </c:forEach>
+        </div>
+      </c:if>
+    </div>
+  </c:forEach>
+
   <div class="form-actions">
     <button type="submit" class="btn btn-primary" onclick="showLoading()">Create</button>
-    <a href="${pageContext.request.contextPath}/users" class="btn btn-secondary" data-url="${pageContext.request.contextPath}/users">Cancel</a>
+    <a href="${pageContext.request.contextPath}/users" class="btn btn-secondary" data-url="${pageContext.request.contextPath}/users" onclick="loadContent(event, this);">Cancel</a>
   </div>
 
 </form:form>
 
-<!-- Loading Indicator -->
 <div id="loadingIndicator" style="display: none;">
   <p class="loading">Submitting...</p>
 </div>

@@ -71,11 +71,6 @@
                     return response.text();
                 })
                 .then(html => {
-                    // Cache the content if URL is valid
-                    if (url !== '#') {
-                        contentCache[url] = html;
-                    }
-                    // Inject the fetched HTML into the content area
                     contentArea.innerHTML = html;
                 })
                 .catch(error => {

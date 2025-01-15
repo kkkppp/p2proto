@@ -1,6 +1,7 @@
 package org.p2proto.repository;
 
 import org.p2proto.dto.TableMetadata;
+import org.p2proto.dto.TableMetadata.ColumnMetaData;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -47,8 +48,14 @@ public class TableMetadataCrudRepository {
      * @return A Map of column->value for the row, or null if none found
      */
     public Map<String, Object> findById(Object pkValue) {
-        String sql = tableMetadata.generateSelectStatement()
-                + " WHERE " + primaryKeyColumn + " = ?::uuid";
+        ColumnMetaData primaryKeyMeta = tableMetadata.getColumns().stream()
+                .filter(column -> column.getName().equals(primaryKeyColumn))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Primary key column not found: " + primaryKeyColumn));
+
+        String whereClause = primaryKeyMeta.generateWherePart();
+        String sql = tableMetadata.generateSelectStatement() + " WHERE " + whereClause;
+
         try {
             return jdbcTemplate.queryForMap(sql, pkValue);
         } catch (EmptyResultDataAccessException e) {
@@ -67,7 +74,9 @@ public class TableMetadataCrudRepository {
     public int insert(Map<String, Object> rowData) {
         // Filter rowData to only include columns that actually exist in the table
         Map<String, Object> filteredData = rowData.entrySet().stream()
-                .filter(e -> tableMetadata.getColumnNames().contains(e.getKey()))
+                .filter(e -> tableMetadata.getColumns().stream()
+                        .map(ColumnMetaData::getName)
+                        .collect(Collectors.toList()).contains(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         if (filteredData.isEmpty()) {
@@ -104,7 +113,9 @@ public class TableMetadataCrudRepository {
     public int update(Object pkValue, Map<String, Object> rowData) {
         // Filter rowData to only include columns that exist
         Map<String, Object> filteredData = rowData.entrySet().stream()
-                .filter(e -> tableMetadata.getColumnNames().contains(e.getKey()))
+                .filter(e -> tableMetadata.getColumns().stream()
+                        .map(ColumnMetaData::getName)
+                        .collect(Collectors.toList()).contains(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         if (filteredData.isEmpty()) {

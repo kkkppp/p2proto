@@ -29,19 +29,19 @@
   </thead>
   <tbody>
   <!-- Iterate over each user and render table rows -->
-  <c:forEach var="user" items="${users}">
+  <c:forEach var="record" items="${records}">
     <tr>
       <c:forEach var="field" items="${renderFields}">
-        <td>${user[field]}</td>
+        <td>${record[field]}</td>
       </c:forEach>
       <td>
         <!-- Edit Button -->
-        <a href="${pageContext.request.contextPath}/users/edit/${user['id']}"
-           data-url="${pageContext.request.contextPath}/users/edit/${user['id']}"
+        <a href="${pageContext.request.contextPath}/users/edit/${record['id']}"
+           data-url="${pageContext.request.contextPath}/users/edit/${record['id']}"
            class="btn btn-secondary">Edit</a>
 
         <!-- Delete Button -->
-        <a href="${pageContext.request.contextPath}/users/delete/${user['id']}"
+        <a href="${pageContext.request.contextPath}/users/delete/${record['id']}"
            class="btn btn-danger"
            onclick="return confirm('Are you sure you want to delete this user?'); loadContent(event, this);">
           Delete
