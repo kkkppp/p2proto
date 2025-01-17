@@ -3,7 +3,7 @@
 
 <h2>Create New User</h2>
 
-<form:form method="POST" action="${pageContext.request.contextPath}/users/save" modelAttribute="record" class="create-user-form" aria-labelledby="createUserForm">
+<form:form method="POST" action="${pageContext.request.contextPath}/table/${tableName}/save" modelAttribute="record" class="create-user-form" aria-labelledby="createUserForm">
 
   <c:forEach var="field" items="${record.fields}" varStatus="status">
     <div class="form-group">
@@ -68,7 +68,7 @@
 
   <div class="form-actions">
     <button type="submit" class="btn btn-primary" onclick="showLoading()">Create</button>
-    <a href="${pageContext.request.contextPath}/users" class="btn btn-secondary" data-url="${pageContext.request.contextPath}/users" onclick="loadContent(event, this);">Cancel</a>
+    <a href="${pageContext.request.contextPath}/table/${tableName}" class="btn btn-secondary" data-url="${pageContext.request.contextPath}/users" onclick="loadContent(event, this);">Cancel</a>
   </div>
 
 </form:form>

@@ -117,7 +117,7 @@ body {
 
 .user-table th, .user-table td {
     border: 1px solid #dee2e6;
-    padding: 15px 20px; /* Increased padding */
+    padding: 5px 5px; /* Increased padding */
     text-align: left;
     background-color: #fff;
     vertical-align: middle; /* Centers content vertically */

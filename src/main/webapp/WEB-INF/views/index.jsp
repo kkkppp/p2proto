@@ -71,6 +71,12 @@
                     return response.text();
                 })
                 .then(html => {
+                    // Cache the loaded content
+                    if (url !== '#') {
+                        contentCache[url] = html;
+                    }
+
+                    // Inject the fetched HTML into the content area
                     contentArea.innerHTML = html;
                 })
                 .catch(error => {
@@ -84,8 +90,15 @@
             event.preventDefault(); // Prevent default form submission
 
             const url = form.getAttribute('action');
-            const method = form.getAttribute('method');
+            const method = form.getAttribute('method').toUpperCase();
             const formData = new FormData(form);
+
+            // Extract CSRF token if present
+            const csrfTokenInput = form.querySelector('input[name="_csrf"]');
+            let csrfToken = '';
+            if (csrfTokenInput) {
+                csrfToken = csrfTokenInput.value;
+            }
 
             const contentArea = document.getElementById('contentArea');
 
@@ -99,20 +112,46 @@
             }
 
             fetch(url, {
-                method: method.toUpperCase(),
+                method: method,
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': csrfToken // Include CSRF token in headers if needed
                 },
                 body: formBody.toString(),
                 credentials: 'same-origin' // Include cookies for session handling
             })
-                .then(response => {
-                    if (response.redirected) {
-                        // Handle redirection if needed
-                        window.location.href = response.url;
-                        return;
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Fetch and load the updated list of records
+                        loadContentFromUrl(data.redirectUrl);
+                    } else if (data.status === 'error') {
+                        // Display error message(s)
+                        contentArea.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
                     }
+                })
+                .catch(error => {
+                    console.error('Error submitting form:', error);
+                    contentArea.innerHTML = '<p class="error-message">Error submitting form. Please try again later.</p>';
+                });
+        }
+
+        // Function to load content from a given URL into contentArea
+        function loadContentFromUrl(url) {
+            const contentArea = document.getElementById('contentArea');
+
+            // Show loading indicator
+            contentArea.innerHTML = '<p class="loading">Loading...</p>';
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest' // To identify AJAX requests server-side
+                },
+                credentials: 'same-origin' // Include cookies for session handling
+            })
+                .then(response => {
                     if (!response.ok) {
                         throw new Error(`Network response was not ok (${response.status})`);
                     }
@@ -129,8 +168,8 @@
                     document.title = newTitle;
                 })
                 .catch(error => {
-                    console.error('Error submitting form:', error);
-                    contentArea.innerHTML = '<p class="error-message">Error submitting form. Please try again later.</p>';
+                    console.error('Error loading content:', error);
+                    contentArea.innerHTML = '<p class="error-message">Error loading content. Please try again later.</p>';
                 });
         }
 
