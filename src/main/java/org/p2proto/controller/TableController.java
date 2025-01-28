@@ -107,8 +107,8 @@ public class TableController {
         Map<String, String> response = new HashMap<>();
 
         // Perform custom validation if needed
-        //validateUserForm(record, result);
-/*
+        validateUserForm(record, result);
+
         if (result.hasErrors()) {
             // Collect error messages
             String errorMessages = result.getAllErrors().stream()
@@ -131,7 +131,7 @@ public class TableController {
             Map<String, Object> recordData = record.getFields().stream()
                     .collect(Collectors.toMap(FormField::getName, FormField::getValue));
 
-            // Save the record (assuming 'id' is auto-generated)
+            // Save the record (assuming 'id' is auto-generated
             //repo.save(recordData);
         } catch (Exception e) {
             // Handle exceptions (e.g., log the error)
@@ -139,7 +139,7 @@ public class TableController {
             response.put("message", "Failed to save the record. Please try again.");
             return ResponseEntity.status(500).body(response);
         }
-*/
+
         // On successful save, provide the URL to fetch the updated list of records
         String contextPath = request.getContextPath();
         String redirectUrl = contextPath + "/table/" + tableName;

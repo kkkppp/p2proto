@@ -63,6 +63,9 @@
           </c:forEach>
         </div>
       </c:if>
+      <form:hidden path="fields[${status.index}].name" />
+      <form:hidden path="fields[${status.index}].type" />
+      <form:hidden path="fields[${status.index}].required" />
     </div>
   </c:forEach>
 
