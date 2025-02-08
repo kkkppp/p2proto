@@ -38,7 +38,7 @@ public class TableMetadataUtil {
      * Query to retrieve field metadata.
      */
     private static final String FIELDS_QUERY =
-            "SELECT f.id AS field_id, f.name AS field_name, f.data_type " +
+            "SELECT f.id AS field_id, f.name AS field_name, f.data_type, f.auto_generated " +
                     "FROM fields f WHERE f.table_id = ?::uuid";
 
     /**
@@ -97,7 +97,7 @@ public class TableMetadataUtil {
             int rawDataType = (int) row.get("data_type");
             TableMetadata.DataType dataType = TableMetadata.DataType.fromCode(rawDataType);
 
-            return new ColumnMetaData(fieldName, fieldLabel, dataType, Collections.emptyMap());
+            return new ColumnMetaData(fieldName, fieldLabel, dataType, (Boolean) row.get("auto_generated"), Collections.emptyMap());
         }).collect(Collectors.toList());
 
         return new TableMetadata(

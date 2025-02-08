@@ -52,6 +52,8 @@ dependencies {
     implementation 'org.springframework.security:spring-security-config:5.8.0'
     implementation 'org.springframework.security:spring-security-oauth2-client:5.8.0'
     implementation 'org.springframework.security:spring-security-oauth2-jose:5.8.0'
+    implementation 'org.springframework.security:spring-security-taglibs:5.8.0'
+
 
     // Keycloak Admin Client
     implementation 'org.keycloak:keycloak-admin-client:21.1.1'

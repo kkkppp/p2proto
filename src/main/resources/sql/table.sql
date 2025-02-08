@@ -30,21 +30,22 @@ CREATE TEMP TABLE temp_fields (
         field_order INT,
         field_name TEXT,
         data_type int,
+        auto_generated BOOLEAN,
         label_singular_en TEXT,
         label_singular_es TEXT
     ) ON COMMIT DROP;
 
     -- Populate the temporary table with field details
-INSERT INTO temp_fields (field_order, field_name, data_type, label_singular_en, label_singular_es)
+INSERT INTO temp_fields (field_order, field_name, data_type, auto_generated, label_singular_en, label_singular_es)
 VALUES
-    (1, 'id', 1, 'ID', 'ID'),
-    (2, 'username', 2, 'Username', 'Nombre de usuario'),
-    (3, 'email', 2, 'Email', 'Correo electrónico'),
-    (4, 'first_name', 2, 'First Name', 'Nombre'),
-    (5, 'last_name', 2, 'Last Name', 'Apellido'),
-    (6, 'password_hash', 2, 'Password Hash', 'Hash de contraseña'),
-    (7, 'email_verified', 3, 'Email Verified', 'Correo verificado'),
-    (8, 'enabled', 3, 'Enabled', 'Habilitado');
+    (1, 'id', 1, true,  'ID', 'ID'),
+    (2, 'username', 2, false, 'Username', 'Nombre de usuario'),
+    (3, 'email', 2, false, 'Email', 'Correo electrónico'),
+    (4, 'first_name', 2, false, 'First Name', 'Nombre'),
+    (5, 'last_name', 2, false, 'Last Name', 'Apellido'),
+    (6, 'password_hash', 2, false, 'Password Hash', 'Hash de contraseña'),
+    (7, 'email_verified', 3, false, 'Email Verified', 'Correo verificado'),
+    (8, 'enabled', 3, false, 'Enabled', 'Habilitado');
 
 -- 5. Loop through each field and insert into metadata tables
 FOR rec IN SELECT * FROM temp_fields ORDER BY field_order LOOP
@@ -54,8 +55,8 @@ FOR rec IN SELECT * FROM temp_fields ORDER BY field_order LOOP
                RETURNING id INTO field_comp_id;
 
 -- b. Insert into field_component
-INSERT INTO fields (id, table_id, data_type, name, removable)
-VALUES (field_comp_id, table_comp_id, rec.data_type, rec.field_name, false);
+INSERT INTO fields (id, table_id, data_type, name, auto_generated, removable)
+VALUES (field_comp_id, table_comp_id, rec.data_type, rec.field_name, rec.auto_generated, false);
 
 -- c. Insert English Singular Label
 INSERT INTO nls_labels (component_id, language_code, label_type, label_text)

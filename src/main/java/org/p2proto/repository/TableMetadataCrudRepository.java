@@ -6,6 +6,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.ArrayList;
+import java.util.function.Function;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -71,19 +72,47 @@ public class TableMetadataCrudRepository {
      * @param rowData A Map of column->value for the new record
      * @return number of rows affected (should be 1 if successful)
      */
+
     public int insert(Map<String, Object> rowData) {
-        // Filter rowData to only include columns that actually exist in the table
+        // Create a mapping from column name to its metadata for quick lookup
+        Map<String, ColumnMetaData> columnsMeta = tableMetadata.getColumns().stream()
+                .collect(Collectors.toMap(ColumnMetaData::getName, Function.identity()));
+
+        // Filter rowData to only include columns that exist in the table,
+        // and convert boolean values appropriately.
         Map<String, Object> filteredData = rowData.entrySet().stream()
-                .filter(e -> tableMetadata.getColumns().stream()
-                        .map(ColumnMetaData::getName)
-                        .collect(Collectors.toList()).contains(e.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .filter(e -> columnsMeta.containsKey(e.getKey()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            ColumnMetaData meta = columnsMeta.get(e.getKey());
+                            // Check if the column is of type boolean
+                            if (meta.getDataType() == TableMetadata.DataType.BOOLEAN) {
+                                // If the value is null, return null immediately
+                                if (e.getValue() == null) {
+                                    return null;
+                                }
+                                // If the provided value is a String, trim it and check if it is empty
+                                if (e.getValue() instanceof String) {
+                                    String strVal = ((String) e.getValue()).trim();
+                                    // If the trimmed string is empty, treat it as null
+                                    if (strVal.isEmpty()) {
+                                        return null;
+                                    }
+                                    // Otherwise, convert the string to a Boolean
+                                    return Boolean.valueOf(strVal);
+                                }
+                            }
+                            // Return the original value for other types or if no conversion is needed
+                            return e.getValue();
+                        }
+                ));
 
         if (filteredData.isEmpty()) {
             throw new IllegalArgumentException("No valid columns found in rowData for insert.");
         }
 
-        // Build the column list and placeholders for the INSERT
+        // Build the column list and placeholders for the INSERT statement
         List<String> columns = new ArrayList<>(filteredData.keySet());
         String colList = String.join(", ", columns);
         String placeholders = columns.stream()
@@ -154,5 +183,15 @@ public class TableMetadataCrudRepository {
                 primaryKeyColumn);
 
         return jdbcTemplate.update(sql, pkValue);
+    }
+
+    public void save(Map<String, Object> recordData) {
+        Object id = recordData.get("id");
+        if (id == null || id.toString().isEmpty() ) {
+            insert(recordData);
+        }
+        else {
+            update(id, recordData);
+        }
     }
 }

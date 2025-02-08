@@ -1,4 +1,5 @@
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
 <h2>Create New User</h2>
@@ -41,13 +42,7 @@
 
         <c:when test="${field.type == 'CHECKBOX'}">
           <div>
-            <c:forEach var="option" items="${field.options}">
-              <label>
-                <input type="checkbox" name="fields[${status.index}].value" value="${option}" ${field.required ? 'required' : ''} />
-                  ${option}
-              </label>
-              &nbsp;&nbsp;
-            </c:forEach>
+             <input type="checkbox" name="fields[${status.index}].value" value="true" ${field.required ? 'required' : ''} />
           </div>
         </c:when>
 
@@ -73,7 +68,7 @@
     <button type="submit" class="btn btn-primary" onclick="showLoading()">Create</button>
     <a href="${pageContext.request.contextPath}/table/${tableName}" class="btn btn-secondary" data-url="${pageContext.request.contextPath}/users" onclick="loadContent(event, this);">Cancel</a>
   </div>
-
+  <sec:csrfInput/>
 </form:form>
 
 <div id="loadingIndicator" style="display: none;">
