@@ -137,7 +137,7 @@
     <button type="submit" class="btn btn-primary" onclick="showLoading()">Finish</button>
     <a href="${pageContext.request.contextPath}/table/${tableName}"
        class="btn btn-secondary"
-       data-url="${pageContext.request.contextPath}/users"
+       data-url="${pageContext.request.contextPath}/table/${tableName}"
        onclick="loadContent(event, this);">
       Cancel
     </a>
