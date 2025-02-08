@@ -36,12 +36,13 @@
       </c:forEach>
       <td>
         <!-- Edit Button -->
-        <a href="${pageContext.request.contextPath}/users/edit/${record['id']}"
-           data-url="${pageContext.request.contextPath}/users/edit/${record['id']}"
-           class="btn btn-secondary">Edit</a>
+        <a href="${pageContext.request.contextPath}/table/${tableName}/edit/${record['id']}"
+           data-url="${pageContext.request.contextPath}/table/${tableName}/edit/${record['id']}"
+           class="btn btn-secondary"
+           onclick="loadContent(event, this);">Edit</a>
 
         <!-- Delete Button -->
-        <a href="${pageContext.request.contextPath}/users/delete/${record['id']}"
+        <a href="${pageContext.request.contextPath}/table/${tableName}/delete/${record['id']}"
            class="btn btn-danger"
            onclick="return confirm('Are you sure you want to delete this user?'); loadContent(event, this);">
           Delete
