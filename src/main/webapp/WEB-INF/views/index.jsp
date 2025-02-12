@@ -38,6 +38,7 @@
                 // Optional logic to skip if left '********' in edit mode (meaning no change)
                 if ((pwd !== '********' && pwd !== '') || confirmPwd !== '') {
                     if (pwd !== confirmPwd) {
+                        document.getElementById('loadingIndicator').style.display = 'none';
                         alert("Passwords do not match!");
                         return false; // Prevent form submission
                     }
@@ -223,7 +224,7 @@
             });
 
             document.body.addEventListener('submit', function(e) {
-                if (e.target.tagName === 'FORM') {
+                if (e.target.tagName === 'FORM' && !e.defaultPrevented) {
                     submitForm(e, e.target);
                 }
             });
