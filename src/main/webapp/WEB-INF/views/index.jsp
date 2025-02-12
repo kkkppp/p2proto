@@ -22,6 +22,30 @@
         // Object to cache loaded content
         const contentCache = {};
 
+        // Show a loading indicator on submit
+        function showLoading() {
+            document.getElementById('loadingIndicator').style.display = 'block';
+        }
+
+        // Validate the password and confirmation match before form submission
+        function validatePasswords() {
+            const passwordFields = document.querySelectorAll('input[type="password"]');
+            // If at least two password fields exist, check they match
+            if (passwordFields.length >= 2) {
+                const pwd = passwordFields[0].value;
+                const confirmPwd = passwordFields[1].value;
+
+                // Optional logic to skip if left '********' in edit mode (meaning no change)
+                if ((pwd !== '********' && pwd !== '') || confirmPwd !== '') {
+                    if (pwd !== confirmPwd) {
+                        alert("Passwords do not match!");
+                        return false; // Prevent form submission
+                    }
+                }
+            }
+            return true;
+        }
+
         // Function to toggle submenu visibility
         function toggleSubmenu(event, link) {
             const parentLi = link.parentElement;

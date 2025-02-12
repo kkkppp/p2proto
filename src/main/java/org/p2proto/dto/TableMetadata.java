@@ -146,6 +146,8 @@ public class TableMetadata {
                     return FieldType.NUMBER;
                 case BOOLEAN:
                     return FieldType.CHECKBOX;
+                case PASSWORD:
+                    return FieldType.PASSWORD;
                 default:
                     throw new IllegalArgumentException("Unsupported data type: " + dataType);
             }
@@ -219,7 +221,8 @@ public class TableMetadata {
         DATETIME(5),
         INTEGER(6),
         FLOAT(7),
-        AUTOINCREMENT(8);
+        AUTOINCREMENT(8),
+        PASSWORD(9);
 
         private final int code;
 

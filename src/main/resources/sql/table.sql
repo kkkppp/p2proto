@@ -43,7 +43,7 @@ VALUES
     (3, 'email', 2, false, 'Email', 'Correo electrónico'),
     (4, 'first_name', 2, false, 'First Name', 'Nombre'),
     (5, 'last_name', 2, false, 'Last Name', 'Apellido'),
-    (6, 'password_hash', 2, false, 'Password Hash', 'Hash de contraseña'),
+    (6, 'password_hash', 9, false, 'Password', 'Hash de contraseña'),
     (7, 'email_verified', 3, false, 'Email Verified', 'Correo verificado'),
     (8, 'enabled', 3, false, 'Enabled', 'Habilitado');
 
