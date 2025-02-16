@@ -125,6 +125,28 @@ cargo {
         homeDir = file('/opt/tomcat')
     }
 }
+task dockerBuildP2proto(type: Exec) {
+    dependsOn war
+    commandLine 'docker', 'build', '-t', 'p2proto', '-f', 'docker/Dockerfile', '.'
+}
+
+task dockerBuildNginx(type: Exec) {
+    commandLine 'docker', 'build', '-t', 'nginx_p', '-f', 'docker/Dockerfile-nginx', '.'
+}
+
+// optional convenience task
+task dockerBuildAll {
+    dependsOn dockerBuildP2proto, dockerBuildNginx
+}
+
+task dockerComposeUp(type: Exec) {
+    commandLine 'docker', 'compose', '-f', 'docker/docker-compose.yml', 'up', '-d'
+}
+
+task dockerComposeDown(type: Exec) {
+    commandLine 'docker' ,'compose', '-f', 'docker/docker-compose.yml', 'down'
+}
+
 
 tasks.named('cargoRedeployRemote') {
     dependsOn war
