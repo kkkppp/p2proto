@@ -4,6 +4,8 @@ services:
     container_name: p2proto
     expose:
       - "8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Necessary on Linux
     networks:
       - backend
 
