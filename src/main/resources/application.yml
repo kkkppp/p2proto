@@ -7,12 +7,12 @@ spring:
             client-id: main_access
             client-secret: aarnV3ngWtnpYKv1EQ4IIx2ITijAiRpc
             authorization-grant-type: authorization_code
-            redirect-uri: http://localhost/p2proto/login/oauth2/code/{registrationId}
+            redirect-uri: ${HOST_URL}/p2proto/login/oauth2/code/{registrationId}
             scope: openid, profile, email
             realm: platform
         provider:
           keycloak:
-            authorization-uri: http://localhost/realms/platform/protocol/openid-connect/auth
+            authorization-uri: ${HOST_URL}/realms/platform/protocol/openid-connect/auth
             token-uri: http://host.docker.internal/realms/platform/protocol/openid-connect/token
             user-info-uri: http://host.docker.internal/realms/platform/protocol/openid-connect/userinfo
             user-name-attribute: preferred_username

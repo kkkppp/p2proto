@@ -5,9 +5,11 @@ services:
     expose:
       - "8080"
     extra_hosts:
-      - "host.docker.internal:host-gateway"  # Necessary on Linux
+      - "host.docker.internal:host-gateway"
     networks:
       - backend
+    environment:
+      - HOST_URL=${HOST_URL:-http://localhost}  # Use .env value or default to localhost
 
   keycloak:
     image: keycloak_p:latest

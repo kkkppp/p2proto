@@ -10,7 +10,7 @@ import static org.keycloak.OAuth2Constants.CLIENT_CREDENTIALS;
 
 @Configuration
 public class KeycloakAdminConfig {
-
+/*
     private final KeycloakProperties keycloakProperties;
     private Keycloak keycloak;
 
@@ -37,5 +37,5 @@ public class KeycloakAdminConfig {
         if (keycloak != null) {
             keycloak.close(); // Properly close resources on shutdown
         }
-    }
+    }*/
 }
