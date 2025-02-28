@@ -31,7 +31,6 @@ These scripts can be run **any time** to reset the database state.
 Run:
 
 ```sh
-./gradlew jar
 ./gradlew dockerComposeUp
 ```
 
