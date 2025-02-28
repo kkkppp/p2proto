@@ -32,5 +32,8 @@ public class KeycloakProperties {
     private String jwkSetUri;
     @Value("${spring.security.oauth2.client.provider.keycloak.issuer-uri}")
     private String issuerUri;
-
+    @Value("${spring.security.oauth2.client.provider.keycloak.logout-uri}")
+    private String keycloakLogoutUri;
+    @Value("${spring.security.oauth2.client.provider.keycloak.post-logout-redirect-uri}")
+    private String postLogoutRedirectUri;
 }

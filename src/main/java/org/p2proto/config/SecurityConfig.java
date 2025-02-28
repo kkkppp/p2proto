@@ -9,8 +9,12 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -21,6 +25,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableWebMvc
 @ComponentScan(basePackages = "org.p2proto.config")
 public class SecurityConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private KeycloakProperties keycloakProperties;
 
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
@@ -47,8 +54,36 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .clientRegistrationRepository(clientRegistrationRepository)
                 .authorizedClientService(authorizedClientService)
             .and()
-            .logout()
-                .logoutSuccessUrl("/");
+                .logout()
+                .invalidateHttpSession(true)
+                .clearAuthentication(true)
+                .deleteCookies("JSESSIONID")
+                .logoutSuccessHandler((request, response, authentication) -> {
+                    if (authentication instanceof OAuth2AuthenticationToken) {
+                        OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+                        OAuth2AuthorizedClient authorizedClient = authorizedClientService
+                                .loadAuthorizedClient(
+                                        oauthToken.getAuthorizedClientRegistrationId(),
+                                        oauthToken.getName()
+                                );
+
+                        if (authorizedClient != null) {
+                            // Get the ID token (not access token)
+                            OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
+                            OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
+                            String idToken = oidcUser.getIdToken().getTokenValue();
+
+                            String redirectUri = keycloakProperties.getPostLogoutRedirectUri();
+                            String logoutUrl = keycloakProperties.getKeycloakLogoutUri() +
+                                    "?post_logout_redirect_uri=" + redirectUri +
+                                    "&id_token_hint=" + idToken;
+
+                            response.sendRedirect(logoutUrl);
+                            return;
+                        }
+                    }
+                    response.sendRedirect("/"); // Fallback if no token is found
+                });
 
         return http.build();
     }

@@ -18,6 +18,8 @@ spring:
             user-name-attribute: preferred_username
             jwk-set-uri: http://host.docker.internal/realms/platform/protocol/openid-connect/certs
             issuer-uri: ${HOST_URL}/realms/platform
+            logout-uri: ${HOST_URL}/realms/platform/protocol/openid-connect/logout
+            post-logout-redirect-uri: ${HOST_URL}/p2proto/
   jpa:
     hibernate:
       ddl-auto: update

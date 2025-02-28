@@ -26,4 +26,35 @@
             </li>
         </c:forEach>
     </ul>
+
+    <!-- Logout Link at the Bottom -->
+    <div class="logout-container">
+        <a href="${pageContext.request.contextPath}/logout" class="logout-link">Logout</a>
+    </div>
 </div>
+
+<!-- CSS to position the logout link at the bottom -->
+<style>
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        height: 100vh; /* Full height sidebar */
+    }
+
+    .logout-container {
+        margin-top: auto; /* Pushes logout to the bottom */
+        padding: 20px;
+    }
+
+    .logout-link {
+        display: block;
+        text-align: center;
+        color: red;
+        font-weight: bold;
+        text-decoration: none;
+    }
+
+    .logout-link:hover {
+        text-decoration: underline;
+    }
+</style>

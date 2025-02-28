@@ -208,16 +208,23 @@
 
             // Attach event listeners to sidebar links and forms
             document.body.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A' && e.target.closest('.sidebar')) {
-                    const link = e.target;
+                const link = e.target.closest('a');
+
+                if (!link) return;
+
+                // If logout link is clicked, allow normal navigation (no AJAX)
+                if (link.href.includes('/logout')) {
+                    return; // Let browser handle the logout link normally
+                }
+
+                // AJAX-based navigation for sidebar links
+                if (link.closest('.sidebar')) {
                     const parentLi = link.parentElement;
                     const submenu = parentLi.querySelector('ul');
 
                     if (submenu) {
-                        // If the link has a submenu, toggle it
                         toggleSubmenu(e, link);
                     } else {
-                        // Otherwise, load the content via AJAX
                         loadContent(e, link);
                     }
                 }
