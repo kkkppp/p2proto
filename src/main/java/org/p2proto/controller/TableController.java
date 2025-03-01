@@ -131,7 +131,7 @@ public class TableController {
             TableMetadataCrudRepository repo =
                     new TableMetadataCrudRepository(util.getJdbcTemplate(), tableMetadata, "id");
 
-            Map<String, Object> recordData = repo.findById(recordId);
+            Map<String, Object> recordData = repo.findById(Integer.valueOf(recordId));
             if (recordData != null) {
                 // Populate each form field from existing DB data
                 for (FormField field : fields) {

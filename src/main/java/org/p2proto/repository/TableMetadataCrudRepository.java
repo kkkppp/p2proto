@@ -52,7 +52,7 @@ public class TableMetadataCrudRepository {
      * @param pkValue The primary key value (e.g., UUID or Long, etc.)
      * @return A Map of column->value for the row, or null if none found
      */
-    public Map<String, Object> findById(Object pkValue) {
+    public Map<String, Object> findById(Integer pkValue) {
         ColumnMetaData primaryKeyMeta = tableMetadata.getColumns().stream()
                 .filter(column -> column.getName().equals(primaryKeyColumn))
                 .findFirst()
@@ -141,7 +141,7 @@ public class TableMetadataCrudRepository {
      * @param rowData The columns/values to update
      * @return number of rows affected (should be 1 if successful)
      */
-    public int update(Object pkValue, Map<String, Object> rowData) {
+    public int update(Integer pkValue, Map<String, Object> rowData) {
         // Reuse the helper method
         Map<String, Object> filteredData = prepareAndFilterRowData(rowData);
 
@@ -206,7 +206,7 @@ public class TableMetadataCrudRepository {
      * @param pkValue The primary key value
      * @return number of rows affected (should be 1 if successful)
      */
-    public int delete(Object pkValue) {
+    public int delete(Integer pkValue) {
         String sql = String.format("DELETE FROM %s WHERE %s = ?",
                 tableMetadata.getTableName(),
                 primaryKeyColumn);
@@ -215,7 +215,11 @@ public class TableMetadataCrudRepository {
     }
 
     public void save(Map<String, Object> recordData) {
-        Object id = recordData.get("id");
+        String idValue = recordData.get("id").toString();
+        Integer id = null;
+        if (! (idValue == null || idValue.isEmpty())) {
+            id = Integer.valueOf(idValue);
+        }
         if (id == null || id.toString().isEmpty() ) {
             insert(recordData);
         }

@@ -38,14 +38,15 @@ CREATE TEMP TABLE temp_fields (
     -- Populate the temporary table with field details
 INSERT INTO temp_fields (field_order, field_name, data_type, auto_generated, label_singular_en, label_singular_es)
 VALUES
-    (1, 'id', 1, true,  'ID', 'ID'),
-    (2, 'username', 2, false, 'Username', 'Nombre de usuario'),
-    (3, 'email', 2, false, 'Email', 'Correo electrónico'),
-    (4, 'first_name', 2, false, 'First Name', 'Nombre'),
-    (5, 'last_name', 2, false, 'Last Name', 'Apellido'),
-    (6, 'password_hash', 9, false, 'Password', 'Hash de contraseña'),
-    (7, 'email_verified', 3, false, 'Email Verified', 'Correo verificado'),
-    (8, 'enabled', 3, false, 'Enabled', 'Habilitado');
+    (1, 'id', 8, true,  'ID', 'ID'),
+    (2, 'uuid', 1, true,  'UUID', 'UUID'),
+    (3, 'username', 2, false, 'Username', 'Nombre de usuario'),
+    (4, 'email', 2, false, 'Email', 'Correo electrónico'),
+    (5, 'first_name', 2, false, 'First Name', 'Nombre'),
+    (6, 'last_name', 2, false, 'Last Name', 'Apellido'),
+    (7, 'password_hash', 9, false, 'Password', 'Hash de contraseña'),
+    (8, 'email_verified', 3, false, 'Email Verified', 'Correo verificado'),
+    (9, 'enabled', 3, false, 'Enabled', 'Habilitado');
 
 -- 5. Loop through each field and insert into metadata tables
 FOR rec IN SELECT * FROM temp_fields ORDER BY field_order LOOP

@@ -140,6 +140,7 @@ task dockerBuildAll {
 }
 
 task dockerComposeUp(type: Exec) {
+    dependsOn dockerBuildAll
     commandLine 'docker', 'compose', '-f', 'docker/docker-compose.yml', 'up', '-d'
 }
 

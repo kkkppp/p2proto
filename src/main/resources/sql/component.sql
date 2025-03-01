@@ -37,7 +37,8 @@ EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create the users table with UUID primary key
 CREATE TABLE users
 (
-    id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id             serial PRIMARY KEY,
+    uuid           UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
     username       VARCHAR(255) UNIQUE NOT NULL,
     email          VARCHAR(255) UNIQUE,
     first_name     VARCHAR(255),
@@ -57,7 +58,7 @@ CREATE INDEX idx_users_email ON users (email);
 CREATE TABLE user_attributes
 (
     id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID         NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    user_id integer         NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     name    VARCHAR(255) NOT NULL,
     value   VARCHAR(255),
     UNIQUE (user_id, name)
@@ -206,4 +207,6 @@ GRANT ALL PRIVILEGES ON ALL
 TABLES IN SCHEMA public TO platform;
 GRANT ALL PRIVILEGES ON ALL
 TABLES IN SCHEMA platform TO platform;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA platform TO platform;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA platform TO keycloak;
 
