@@ -88,6 +88,13 @@ CREATE TYPE component_type_enum AS ENUM (
     'ELEMENT'
 );
 
+CREATE TYPE table_type_enum AS ENUM (
+    'STANDARD',
+    'USERS',
+    'ACCESS'
+    );
+
+
 CREATE TYPE label_type_enum AS ENUM (
     'LABEL',
     'PLURAL_LABEL',
@@ -109,6 +116,7 @@ CREATE TABLE components
 CREATE TABLE tables
 (
     id            UUID PRIMARY KEY,
+    TYPE          table_type_enum NOT NULL,
     logical_name  TEXT    NOT NULL,
     physical_name TEXT    NOT NULL,
     removable     BOOLEAN NOT NULL,
