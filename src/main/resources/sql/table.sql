@@ -15,7 +15,7 @@ VALUES ('TABLE')
 
 -- 2. Insert into table_component with the obtained UUID
 INSERT INTO tables (id, type, logical_name, physical_name, removable)
-VALUES (table_comp_id, 'STANDARD',''users', 'users', false);
+VALUES (table_comp_id, 'STANDARD', 'users', 'users', false);
 
 -- 3. Insert labels for the 'users' table
 INSERT INTO nls_labels (component_id, language_code, label_type, label_text)
