@@ -87,6 +87,8 @@ dependencies {
 
     // Exclude other logging frameworks if present
 
+    implementation 'org.liquibase:liquibase-core:4.30.0'
+
     configurations {
         all {
             //exclude group: 'commons-logging', module: 'commons-logging'
