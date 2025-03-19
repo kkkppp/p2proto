@@ -1,9 +1,9 @@
 package org.p2proto.util;
 
 import lombok.Getter;
+import org.p2proto.ddl.Domain;
 import org.p2proto.dto.TableMetadata;
 import org.p2proto.dto.TableMetadata.ColumnMetaData;
-import org.p2proto.dto.TableMetadata.DataType;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -95,9 +95,9 @@ public class TableMetadataUtil {
             String fieldLabel = fieldLabels.getOrDefault(fieldId, fieldName);
 
             int rawDataType = (int) row.get("data_type");
-            TableMetadata.DataType dataType = TableMetadata.DataType.fromCode(rawDataType);
+            Domain domain = Domain.fromCode(rawDataType);
 
-            return new ColumnMetaData(fieldName, fieldLabel, dataType, (Boolean) row.get("auto_generated"), Collections.emptyMap());
+            return new ColumnMetaData(fieldName, fieldLabel, domain, (Boolean) row.get("auto_generated"), Collections.emptyMap());
         }).collect(Collectors.toList());
 
         return new TableMetadata(

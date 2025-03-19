@@ -1,5 +1,6 @@
 package org.p2proto.repository;
 
+import org.p2proto.ddl.Domain;
 import org.p2proto.dto.TableMetadata;
 import org.p2proto.dto.TableMetadata.ColumnMetaData;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -7,11 +8,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import java.util.ArrayList;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -85,12 +84,12 @@ public class TableMetadataCrudRepository {
         // Filter and convert
         Map<String, Object> filteredData = rowData.entrySet().stream()
                 .filter(e -> columnsByName.containsKey(e.getKey()) &&
-                        ! (columnsByName.get(e.getKey()).getDataType().equals(TableMetadata.DataType.PASSWORD) && e.getValue().equals(PASSWORD_MASK)))
+                        ! (columnsByName.get(e.getKey()).getDomain().equals(Domain.PASSWORD) && e.getValue().equals(PASSWORD_MASK)))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         e -> {
                             ColumnMetaData meta = columnsByName.get(e.getKey());
-                            return getDBValue(meta.getDataType(), e.getValue());
+                            return getDBValue(meta.getDomain(), e.getValue());
                         }
                 ));
 
@@ -176,11 +175,11 @@ public class TableMetadataCrudRepository {
      * Converts a given raw value to the appropriate type for DB storage.
      * This logic is shared by both insert() and update().
      */
-    private Object getDBValue(TableMetadata.DataType dataType, Object value) {
+    private Object getDBValue(Domain dataType, Object value) {
         if (value == null) {
             return null;
         }
-        if (TableMetadata.DataType.BOOLEAN.equals(dataType)) {
+        if (Domain.BOOLEAN.equals(dataType)) {
             // If it's a string, trim and handle empty as null
             if (value instanceof String) {
                 String strVal = ((String) value).trim();
@@ -192,7 +191,7 @@ public class TableMetadataCrudRepository {
             // If it's already a Boolean or something else,
             // just convert via toString() as a fallback
             return Boolean.valueOf(value.toString());
-        } else if (TableMetadata.DataType.PASSWORD.equals(dataType)) {
+        } else if (Domain.PASSWORD.equals(dataType)) {
             return BCrypt.hashpw(value.toString(), BCrypt.gensalt(10));
         }
 
