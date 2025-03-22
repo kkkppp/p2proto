@@ -57,10 +57,3 @@
   </c:forEach>
   </tbody>
 </table>
-<script>
-  function confirmDelete(tableLabel) {
-    // Insert the dynamic table label into the resource-based confirmation
-    var message = "<fmt:message key='confirm.delete'><fmt:param value='\" + tableLabel + \"'/></fmt:message>";
-    return confirm(message);
-  }
-</script>

@@ -237,6 +237,11 @@
             });
         };
     </script>
+    <script>
+        function confirmDelete(tableLabel) {
+            return confirm("Are you sure you want to delete this " + tableLabel + "?");
+        }
+    </script>
 </head>
 <body>
 <!-- Include Sidebar -->
