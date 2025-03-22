@@ -60,6 +60,8 @@ public class TableController {
                 .collect(Collectors.toMap(ColumnMetaData::getName, ColumnMetaData::getLabel)));
         model.addAttribute("records", records);
         model.addAttribute("tableName", tableName);
+        model.addAttribute("tableLabel", tableMetadata.getTableLabel());
+        model.addAttribute("tableLabelPlural", tableMetadata.getTablePluralLabel());
     }
 
     /**
@@ -145,6 +147,7 @@ public class TableController {
 
         // 4. Populate the model
         model.addAttribute("tableName", tableName);
+        model.addAttribute("tableLabel", tableMetadata.getTableLabel());
         model.addAttribute("record", recordForm);
     }
 

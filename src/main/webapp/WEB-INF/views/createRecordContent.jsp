@@ -4,10 +4,10 @@
 
 <c:choose>
   <c:when test="${mode == 'create'}">
-    <h2>Create New User</h2>
+    <h2>Create New ${tableLabel}</h2>
   </c:when>
   <c:otherwise>
-    <h2>Edit User</h2>
+    <h2>Edit ${tableLabel}</h2>
   </c:otherwise>
 </c:choose>
 

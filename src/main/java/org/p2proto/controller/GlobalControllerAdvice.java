@@ -13,6 +13,10 @@ public class GlobalControllerAdvice {
 
     @ModelAttribute("menu")
     public List<MenuItem> populateMenu() {
+        MenuItem setup = new MenuItem("Setup", "#", Arrays.asList(
+                new MenuItem("Tables", "/setup/tables")
+        ));
+
         MenuItem tables = new MenuItem("Tables", "#", Arrays.asList(
                 new MenuItem("Manage Users", "/table/users?fields=username,email,first_name,last_name")
         ));
@@ -22,7 +26,7 @@ public class GlobalControllerAdvice {
                 new MenuItem("Manage Teams", "/teams")
         ));
 
-        return Arrays.asList(tables, access);
+        return Arrays.asList(tables, setup, access);
     }
 
     // Optionally, set the active menu based on the request
