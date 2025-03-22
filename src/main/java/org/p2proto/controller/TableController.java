@@ -208,6 +208,42 @@ public class TableController {
     }
 
     /**
+     * Deletes a record by its ID for a given table.
+     */
+    @PostMapping("/{tableName}/delete/{id}")
+    public ResponseEntity<Map<String, String>> deleteRecord(
+            @PathVariable("tableName") String tableName,
+            @PathVariable("id") String id
+    ) {
+        Map<String, String> response = new HashMap<>();
+        try {
+            // 1. Retrieve table metadata
+            UUID tableID = util.findAll().get(tableName);
+            TableMetadata tableMetadata = util.findByID(tableID);
+
+            // 2. Initialize repository
+            TableMetadataCrudRepository repo =
+                    new TableMetadataCrudRepository(util.getJdbcTemplate(), tableMetadata, "id");
+
+            // 3. Perform the delete
+            repo.delete(Integer.valueOf(id));
+
+            // If successful, return success response
+            String contextPath = request.getContextPath();
+            String redirectUrl = contextPath + "/table/" + tableName;
+            response.put("status", "success");
+            response.put("redirectUrl", redirectUrl);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("status", "error");
+            response.put("message", "Failed to delete the record. Please try again.");
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
      * Helper method that sets checkbox fields to "false" if they are null or empty.
      * This ensures no null values appear in the final recordData.
      */

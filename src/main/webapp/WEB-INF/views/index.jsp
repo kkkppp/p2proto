@@ -153,7 +153,7 @@
                         loadContentFromUrl(data.redirectUrl);
                     } else if (data.status === 'error') {
                         // Display error message(s)
-                        contentArea.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                        contentArea.innerHTML = '<div class="alert alert-danger">'+data.message+'</div>';
                     }
                 })
                 .catch(error => {
@@ -238,8 +238,30 @@
         };
     </script>
     <script>
-        function confirmDelete(tableLabel) {
-            return confirm("Are you sure you want to delete this " + tableLabel + "?");
+        var csrfToken = "${_csrf.token}";
+        function deleteRecord(tableName, id) {
+            if (!confirm('Are you sure you want to delete this record?')) {
+                return;
+            }
+
+            fetch("${pageContext.request.contextPath}/table/" + tableName + "/delete/" + id, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        loadContentFromUrl(data.redirectUrl);
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => console.error('Delete error:', error));
         }
     </script>
 </head>

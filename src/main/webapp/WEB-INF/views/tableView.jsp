@@ -47,9 +47,9 @@
            onclick="loadContent(event, this);"><fmt:message key="button.edit" /></a>
 
         <!-- Delete Button -->
-        <a href="${pageContext.request.contextPath}/table/${tableName}/delete/${record['id']}"
+        <a href="#"
            class="btn btn-danger"
-           onclick="return confirmDelete('${tableLabel}'); loadContent(event, this);">
+           onclick="deleteRecord('${tableName}', '${record['id']}');">
           <fmt:message key="button.delete" />
         </a>
       </td>
