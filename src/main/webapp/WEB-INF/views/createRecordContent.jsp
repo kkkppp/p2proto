@@ -1,13 +1,22 @@
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <c:choose>
   <c:when test="${mode == 'create'}">
-    <h2>Create New ${tableLabel}</h2>
+    <h2>
+      <fmt:message key="label.createNew">
+        <fmt:param value="${tableLabel}"/>
+      </fmt:message>
+    </h2>
   </c:when>
   <c:otherwise>
-    <h2>Edit ${tableLabel}</h2>
+    <h2>
+      <fmt:message key="label.edit">
+        <fmt:param value="${tableLabel}"/>
+      </fmt:message>
+    </h2>
   </c:otherwise>
 </c:choose>
 
@@ -148,12 +157,12 @@
   </c:forEach>
 
   <div class="form-actions">
-    <button type="submit" class="btn btn-primary" onclick="showLoading()">Finish</button>
+    <button type="submit" class="btn btn-primary" onclick="showLoading()"><fmt:message key="button.finish" /></button>
     <a href="${pageContext.request.contextPath}/table/${tableName}"
        class="btn btn-secondary"
        data-url="${pageContext.request.contextPath}/table/${tableName}"
        onclick="loadContent(event, this);">
-      Cancel
+      <fmt:message key="button.cancel" />
     </a>
   </div>
 

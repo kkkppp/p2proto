@@ -1,11 +1,16 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <!-- Custom Table Tabular View -->
 <h2>${tableLabelPlural}</h2>
 <a href="${pageContext.request.contextPath}/table/${tableName}/create"
    data-url="${pageContext.request.contextPath}/table/${tableName}/create"
    class="btn btn-primary"
-   onclick="loadContent(event, this);">Create New ${tableLabel}</a>
+   onclick="loadContent(event, this);">
+  <fmt:message key="button.createNew">
+    <fmt:param value="${tableLabel}"/>
+  </fmt:message>
+</a>
 <br/><br/>
 
 <!-- Determine which fields to render -->
@@ -24,7 +29,7 @@
     <c:forEach var="field" items="${renderFields}">
       <th>${columnLabels[field]}</th>
     </c:forEach>
-    <th>Actions</th>
+    <th><fmt:message key="label.actions" /></th>
   </tr>
   </thead>
   <tbody>
@@ -39,16 +44,23 @@
         <a href="${pageContext.request.contextPath}/table/${tableName}/edit/${record['id']}"
            data-url="${pageContext.request.contextPath}/table/${tableName}/edit/${record['id']}"
            class="btn btn-secondary"
-           onclick="loadContent(event, this);">Edit</a>
+           onclick="loadContent(event, this);"><fmt:message key="button.edit" /></a>
 
         <!-- Delete Button -->
         <a href="${pageContext.request.contextPath}/table/${tableName}/delete/${record['id']}"
            class="btn btn-danger"
-           onclick="return confirm('Are you sure you want to delete this ${tableLabel}?'); loadContent(event, this);">
-          Delete
+           onclick="return confirmDelete('${tableLabel}'); loadContent(event, this);">
+          <fmt:message key="button.delete" />
         </a>
       </td>
     </tr>
   </c:forEach>
   </tbody>
 </table>
+<script>
+  function confirmDelete(tableLabel) {
+    // Insert the dynamic table label into the resource-based confirmation
+    var message = "<fmt:message key='confirm.delete'><fmt:param value='\" + tableLabel + \"'/></fmt:message>";
+    return confirm(message);
+  }
+</script>
