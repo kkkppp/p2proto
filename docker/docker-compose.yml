@@ -2,15 +2,18 @@ services:
   p2proto:
     image: p2proto:latest
     container_name: p2proto
+    ports:
+      - 5005:5005
     expose:
       - "8080"
+      - "5005"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - backend
     environment:
       - HOST_URL=${HOST_URL:-http://localhost}  # Use .env value or default to localhost
-
+      - JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,address=*:5005,server=y,suspend=n"
   keycloak:
     image: keycloak_p:latest
     #ports:

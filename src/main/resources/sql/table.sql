@@ -9,13 +9,13 @@ DECLARE
     rec RECORD;            -- Record variable for looping through fields
 BEGIN
     -- 1. Insert into component for the 'users' table
-INSERT INTO components (component_type)
-VALUES ('TABLE')
+INSERT INTO components (component_type, status)
+VALUES ('TABLE', 'ACTIVE')
     RETURNING id INTO table_comp_id;
 
 -- 2. Insert into table_component with the obtained UUID
-INSERT INTO tables (id, type, logical_name, physical_name, removable)
-VALUES (table_comp_id, 'STANDARD', 'users', 'users', false);
+INSERT INTO tables (id, type, logical_name, removable)
+VALUES (table_comp_id, 'STANDARD', 'users', false);
 
 -- 3. Insert labels for the 'users' table
 INSERT INTO nls_labels (component_id, language_code, label_type, label_text)
@@ -51,8 +51,8 @@ VALUES
 -- 5. Loop through each field and insert into metadata tables
 FOR rec IN SELECT * FROM temp_fields ORDER BY field_order LOOP
            -- a. Insert into component for the field
-           INSERT INTO components (component_type)
-           VALUES ('FIELD')
+           INSERT INTO components (component_type, status)
+           VALUES ('FIELD', 'ACTIVE')
                RETURNING id INTO field_comp_id;
 
 -- b. Insert into field_component
@@ -68,6 +68,11 @@ INSERT INTO nls_labels (component_id, language_code, label_type, label_text)
 VALUES (field_comp_id, 'es', 'LABEL', rec.label_singular_es);
 END LOOP;
 END $$;
+
+UPDATE components
+SET created_by = users.id
+    FROM users
+WHERE users.username = 'admin';
 
 -- Commit Transaction
 COMMIT;

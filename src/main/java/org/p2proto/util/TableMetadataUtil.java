@@ -21,19 +21,28 @@ public class TableMetadataUtil {
      * Query to retrieve table's physical name and logical name.
      */
     private static final String TABLE_QUERY =
-            "SELECT t.id AS table_id, t.logical_name, t.physical_name " +
+            "SELECT t.id AS table_id, t.logical_name " +
                     "FROM tables t WHERE t.id = ?::uuid";
 
     /**
-     * Query to retrieve table labels.
+     * Query to retrieve single table labels.
      */
-    private static final String TABLE_LABELS_QUERY =
+    private static final String SINGLE_TABLE_LABELS_QUERY =
             "SELECT lab.label_text AS table_label, labp.label_text AS table_plural_label " +
                     "FROM nls_labels lab " +
                     "LEFT JOIN nls_labels labp ON labp.component_id = lab.component_id " +
                     "AND labp.language_code = ? AND labp.label_type = 'PLURAL_LABEL' " +
                     "WHERE lab.component_id = ?::uuid AND lab.language_code = ? AND lab.label_type = 'LABEL'";
 
+    /**
+     * Query to retrieve all table's labels.
+     */
+    private static final String ALL_TABLES_LABELS_QUERY =
+            "SELECT nl.component_id AS table_id, nl.label_text, nl.label_type " +
+                    "  FROM nls_labels nl " +
+                    " WHERE nl.language_code = '%s' " +
+                    "   AND nl.component_id IN (SELECT t.id FROM tables t) " +
+                    "   AND nl.label_type IN ('LABEL', 'PLURAL_LABEL')";
     /**
      * Query to retrieve field metadata.
      */
@@ -48,7 +57,7 @@ public class TableMetadataUtil {
             "SELECT nf.component_id AS field_id, nf.label_text AS field_label " +
                     "FROM nls_labels nf WHERE nf.language_code = ? AND nf.label_type = 'LABEL' AND nf.component_id IN (%s)";
 
-    private static final String MAPPING_SQL =
+    private static final String ALL_TABLES_QUERY =
             "SELECT id, logical_name FROM tables";
 
     private final JdbcTemplate jdbcTemplate;
@@ -64,11 +73,10 @@ public class TableMetadataUtil {
         if (tableRow == null || tableRow.isEmpty()) {
             throw new RuntimeException("No table found with ID = " + tableId);
         }
-        String tableName = (String) tableRow.get("physical_name");
         String logicalName = (String) tableRow.get("logical_name");
 
         // 2) Query table labels
-        Map<String, Object> labelRow = jdbcTemplate.queryForMap(TABLE_LABELS_QUERY, DEFAULT_LANGUAGE, tableId, DEFAULT_LANGUAGE);
+        Map<String, Object> labelRow = jdbcTemplate.queryForMap(SINGLE_TABLE_LABELS_QUERY, DEFAULT_LANGUAGE, tableId, DEFAULT_LANGUAGE);
         String tableLabel = Optional.ofNullable((String) labelRow.get("table_label")).orElse(logicalName);
         String tablePluralLabel = Optional.ofNullable((String) labelRow.get("table_plural_label")).orElse(tableLabel + "s");
 
@@ -101,7 +109,8 @@ public class TableMetadataUtil {
         }).collect(Collectors.toList());
 
         return new TableMetadata(
-                tableName,
+                tableId,
+                logicalName,
                 tableLabel,
                 tablePluralLabel,
                 columns
@@ -113,7 +122,7 @@ public class TableMetadataUtil {
      */
     @Cacheable(cacheNames = "tables", key = "'logicalNameToId'")
     public Map<String, UUID> findAll() {
-        return jdbcTemplate.query(MAPPING_SQL, rs -> {
+        return jdbcTemplate.query(ALL_TABLES_QUERY, rs -> {
             Map<String, UUID> map = new HashMap<>();
             while (rs.next()) {
                 UUID tableId = (UUID) rs.getObject("id");
@@ -122,5 +131,73 @@ public class TableMetadataUtil {
             }
             return map;
         });
+    }
+
+    /**
+     * Loads table-level info and returns them
+     * in ascending order by tablePluralLabel.
+     */
+    @Cacheable(cacheNames = "tables", key = "'allTablesOrderedByPluralLabel'")
+    public List<TableMetadata> findAllWithLabels() {
+        // 1) Load all tables
+        List<Map<String, Object>> tableRows = jdbcTemplate.queryForList(ALL_TABLES_QUERY);
+        if (tableRows.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Map tableId -> TableMetadata
+        Map<UUID, TableMetadata> tableMap = new LinkedHashMap<>();
+        for (Map<String, Object> row : tableRows) {
+            UUID tableId = (UUID) row.get("id");
+            String logicalName = (String) row.get("logical_name");
+
+            // We won't load columns, so set columns = Collections.emptyList()
+            tableMap.put(tableId, new TableMetadata(
+                    tableId,
+                    logicalName,
+                    null, // tableLabel
+                    null, // tablePluralLabel
+                    Collections.emptyList()
+            ));
+        }
+
+        // 2) Load labels (LABEL & PLURAL_LABEL) with no JOIN
+        String labelsQuery = String.format(ALL_TABLES_LABELS_QUERY, DEFAULT_LANGUAGE);
+        Map<UUID, Map<String, String>> tableLabelsMap = new HashMap<>();
+
+        jdbcTemplate.query(labelsQuery, rs -> {
+                UUID tableId = (UUID) rs.getObject("table_id");
+                String labelText = rs.getString("label_text");
+                String labelType = rs.getString("label_type");
+                tableLabelsMap
+                        .computeIfAbsent(tableId, k -> new HashMap<>())
+                        .put(labelType, labelText);
+        });
+
+        // 3) Apply labels
+        for (Map.Entry<UUID, TableMetadata> entry : tableMap.entrySet()) {
+            UUID tableId = entry.getKey();
+            TableMetadata meta = entry.getValue();
+
+            String fallback = meta.getTableName();
+            Map<String, String> typeMap = tableLabelsMap.get(tableId);
+
+            if (typeMap != null) {
+                String singular = typeMap.getOrDefault("LABEL", fallback);
+                String plural = typeMap.getOrDefault("PLURAL_LABEL", singular + "s");
+                meta.setTableLabel(singular);
+                meta.setTablePluralLabel(plural);
+            } else {
+                meta.setTableLabel(fallback);
+                meta.setTablePluralLabel(fallback + "s");
+            }
+        }
+
+        // 4) Sort by plural label (ascending)
+        List<TableMetadata> results = new ArrayList<>(tableMap.values());
+        results.sort(Comparator.comparing(TableMetadata::getTablePluralLabel));
+
+        // 5) Return sorted list
+        return results;
     }
 }

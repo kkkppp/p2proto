@@ -14,7 +14,7 @@ public class GlobalControllerAdvice {
     @ModelAttribute("menu")
     public List<MenuItem> populateMenu() {
         MenuItem setup = new MenuItem("Setup", "#", Arrays.asList(
-                new MenuItem("Tables", "/setup/tables")
+                new MenuItem("Tables", "/tableSetup")
         ));
 
         MenuItem tables = new MenuItem("Tables", "#", Arrays.asList(

@@ -19,9 +19,6 @@
     <!-- Link to External CSS -->
     <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/resources/css/styles.css">
     <script>
-        // Object to cache loaded content
-        const contentCache = {};
-
         // Show a loading indicator on submit
         function showLoading() {
             document.getElementById('loadingIndicator').style.display = 'block';
@@ -72,12 +69,6 @@
             // Add active class to the clicked link
             link.classList.add('active-link');
 
-            // If content is cached, use it
-            if (contentCache[url] && url !== '#') { // Avoid loading '#' as content
-                contentArea.innerHTML = contentCache[url];
-                return;
-            }
-
             // Show loading indicator
             contentArea.innerHTML = '<p class="loading">Loading...</p>';
 
@@ -96,12 +87,6 @@
                     return response.text();
                 })
                 .then(html => {
-                    // Cache the loaded content
-                    if (url !== '#') {
-                        contentCache[url] = html;
-                    }
-
-                    // Inject the fetched HTML into the content area
                     contentArea.innerHTML = html;
                 })
                 .catch(error => {

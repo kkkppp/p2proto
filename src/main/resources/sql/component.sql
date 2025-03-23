@@ -88,6 +88,12 @@ CREATE TYPE component_type_enum AS ENUM (
     'ELEMENT'
 );
 
+CREATE TYPE component_status_enum AS ENUM (
+    'ACTIVE',
+    'LOCKED',
+    'INACTIVE'
+);
+
 CREATE TYPE table_type_enum AS ENUM (
     'STANDARD',
     'USERS',
@@ -108,8 +114,11 @@ CREATE TABLE components
 (
     id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     component_type component_type_enum NOT NULL,
+    status         component_status_enum NOT NULL,
     created_at     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+    updated_at     TIMESTAMP WITHOUT TIME ZONE,
+    created_by     integer REFERENCES users (id),
+    updated_by     integer REFERENCES users (id)
 );
 
 -- 4a) table_component
@@ -118,14 +127,12 @@ CREATE TABLE tables
     id            UUID PRIMARY KEY,
     TYPE          table_type_enum NOT NULL,
     logical_name  TEXT    NOT NULL,
-    physical_name TEXT    NOT NULL,
     removable     BOOLEAN NOT NULL,
     CONSTRAINT fk_tables_components
         FOREIGN KEY (id)
             REFERENCES components (id)
             ON DELETE CASCADE,
-    CONSTRAINT l_name UNIQUE (logical_name),
-    CONSTRAINT p_name UNIQUE (physical_name)
+    CONSTRAINT l_name UNIQUE (logical_name)
 );
 
 -- 4b) field_component
@@ -198,8 +205,6 @@ CREATE TABLE nls_labels
     language_code CHAR(5)         NOT NULL,
     label_type    label_type_enum NOT NULL,
     label_text    TEXT            NOT NULL,
-    created_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (component_id, language_code, label_type),
     CONSTRAINT fk_labels_components
         FOREIGN KEY (component_id)
