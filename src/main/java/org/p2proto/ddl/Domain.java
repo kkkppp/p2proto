@@ -11,25 +11,31 @@ import java.util.stream.Collectors;
 public enum Domain {
 
     UUID(1, "UUID", "label.domain.uuid", "UUID"),
-    TEXT(2, "TEXT", "label.domain.text", "VARCHAR(255)"),
+    TEXT(2, "TEXT", "label.domain.text", "VARCHAR"),
     BOOLEAN(3, "BOOLEAN", "label.domain.boolean", "BOOLEAN"),
     DATE(4, "DATE", "label.domain.date", "DATE"),
     DATETIME(5, "DATETIME", "label.domain.datetime", "TIMESTAMP"),
-    INTEGER(6, "INTEGER", "label.domain.integer", "INTEGER"),
+    INTEGER(6, "INTEGER", "label.domain.integer", "INT"),
     FLOAT(7, "FLOAT", "label.domain.float", "FLOAT"),
-    AUTOINCREMENT(8, "AUTOINCREMENT", "label.domain.autoincrement", "SERIAL"),
+    AUTOINCREMENT(8, "AUTOINCREMENT", "label.domain.autoincrement", "INT", true),
     PASSWORD(9, "PASSWORD", "label.domain.password", "VARCHAR(255)");
 
     private final int code;
     private final String internalName;
     private final String resourceId;       // For Spring NLS
     private final String liquibaseType;    // For Liquibase migrations
+    private final boolean autoIncrement;
 
     Domain(int code, String internalName, String resourceId, String liquibaseType) {
+        this(code, internalName, resourceId, liquibaseType, false);
+    }
+
+    Domain(int code, String internalName, String resourceId, String liquibaseType, boolean autoIncrement) {
         this.code = code;
         this.internalName = internalName;
         this.resourceId = resourceId;
         this.liquibaseType = liquibaseType;
+        this.autoIncrement = autoIncrement;
     }
 
     public int getCode() {
@@ -46,6 +52,10 @@ public enum Domain {
 
     public String getLiquibaseType() {
         return liquibaseType;
+    }
+
+    public boolean isAutoIncrement() {
+        return autoIncrement;
     }
 
     /**
