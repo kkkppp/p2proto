@@ -143,6 +143,7 @@ CREATE TABLE fields
     name      TEXT    NOT NULL,
     data_type int     NOT NULL,
     removable BOOLEAN NOT NULL,
+    primary_key BOOLEAN NOT NULL,
     auto_generated BOOLEAN NOT NULL,
     CONSTRAINT fk_fields_components
         FOREIGN KEY (id)
