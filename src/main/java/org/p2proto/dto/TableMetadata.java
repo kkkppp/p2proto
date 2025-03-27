@@ -25,6 +25,9 @@ public class TableMetadata {
     private String tablePluralLabel;    // Label from nls_labels (label_type='PLURAL_LABEL')
     private List<ColumnMetaData> columns;   // Column information as a list of ColumnMetaData objects
 
+    public TableMetadata() {
+    }
+
     public TableMetadata(String tableName, String tableLabel, String tablePluralLabel) {
         this(null, tableName, tableLabel, tablePluralLabel, List.of());
     }
