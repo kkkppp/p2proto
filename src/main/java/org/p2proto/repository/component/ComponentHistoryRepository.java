@@ -22,7 +22,6 @@ public class ComponentHistoryRepository {
 
     /**
      * RowMapper to map a row in the `component_history` table to a ComponentHistory object.
-     * Make sure the column names match your exact table definition.
      */
     private final RowMapper<ComponentHistory> rowMapper = new RowMapper<ComponentHistory>() {
         @Override
@@ -31,17 +30,17 @@ public class ComponentHistoryRepository {
 
             ch.setId(rs.getLong("id"));
             ch.setComponentId(rs.getObject("component_id", UUID.class));
+            // Use getObject(...) for parent_id in case it's null
+            ch.setParentId(rs.getObject("parent_id", Long.class));
 
-            // Convert the string from the DB to enum
             ch.setStatus(ComponentHistoryStatus.valueOf(rs.getString("status")));
-
             ch.setUserId(rs.getInt("user_id"));
+            ch.setTimestamp(rs.getTimestamp("timestamp"));
 
-            Timestamp ts = rs.getTimestamp("timestamp");
-            ch.setTimestamp(ts); // or handle null checks if needed
-
-            // JSONB stored as string
-            ch.setChangeDetails(rs.getString("change_details"));
+            ch.setDdlStatement(rs.getString("ddl_statement"));
+            // old_state and new_state are JSONB columns stored as strings here
+            ch.setOldState(rs.getString("old_state"));
+            ch.setNewState(rs.getString("new_state"));
 
             return ch;
         }
@@ -49,21 +48,28 @@ public class ComponentHistoryRepository {
 
     /**
      * CREATE: Insert a new record into the `component_history` table.
-     * The BIGINT `id` is auto-generated. We do NOT specify it in the INSERT statement.
+     * BIGINT `id` is auto-generated, so we do not specify it in the INSERT.
      */
     public int save(ComponentHistory ch) {
         String sql = """
             INSERT INTO component_history
-                   (component_id, status, user_id, timestamp, change_details)
-            VALUES (?, ?::component_history_status_enum, ?, ?, ?::jsonb)
+                   (component_id, parent_id, status, user_id, timestamp,
+                    ddl_statement, old_state, new_state)
+            VALUES (?, ?, ?::component_history_status_enum, ?, ?,
+                    ?, ?::jsonb, ?::jsonb)
         """;
         return jdbcTemplate.update(
                 sql,
                 ch.getComponentId(),
+                ch.getParentId(),
                 ch.getStatus().name(),
                 ch.getUserId(),
+                // If timestamp is null, default to "now", or rely on DB default
                 ch.getTimestamp() != null ? ch.getTimestamp() : new Timestamp(System.currentTimeMillis()),
-                ch.getChangeDetails() != null ? ch.getChangeDetails() : "{}"
+                ch.getDdlStatement(),
+                // Use "{}" if oldState/newState are null, or store them as-is
+                ch.getOldState() != null ? ch.getOldState() : "{}",
+                ch.getNewState() != null ? ch.getNewState() : "{}"
         );
     }
 
@@ -88,23 +94,31 @@ public class ComponentHistoryRepository {
     }
 
     /**
-     * UPDATE: Update fields by ID (e.g., status, timestamp, changeDetails, etc.)
+     * UPDATE: Update fields by ID.
      */
     public int update(ComponentHistory ch) {
         String sql = """
             UPDATE component_history
-               SET status        = ?::component_history_status_enum,
+               SET component_id  = ?,
+                   parent_id     = ?,
+                   status        = ?::component_history_status_enum,
                    user_id       = ?,
                    timestamp     = ?,
-                   change_details= ?::jsonb
+                   ddl_statement = ?,
+                   old_state     = ?::jsonb,
+                   new_state     = ?::jsonb
              WHERE id = ?
         """;
         return jdbcTemplate.update(
                 sql,
+                ch.getComponentId(),
+                ch.getParentId(),
                 ch.getStatus().name(),
                 ch.getUserId(),
                 ch.getTimestamp(),
-                ch.getChangeDetails(),
+                ch.getDdlStatement(),
+                ch.getOldState(),
+                ch.getNewState(),
                 ch.getId()
         );
     }
