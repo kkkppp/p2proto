@@ -4,9 +4,11 @@ import liquibase.change.AddColumnConfig;
 import liquibase.change.Change;
 import liquibase.change.ConstraintsConfig;
 import liquibase.change.core.CreateTableChange;
+import lombok.Data;
 import org.p2proto.dto.TableMetadata;
 import org.p2proto.util.TableMetadataUtil;
 
+@Data
 public class CreateTableCommand implements DDLCommand {
 
     private final TableMetadata table;
