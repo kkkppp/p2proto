@@ -123,7 +123,7 @@ CREATE TABLE components
 
 -- Create an enum for component_history status (if not already created)
 CREATE TYPE component_history_status_enum AS ENUM (
-    'IN PROGRESS',
+    'IN_PROGRESS',
     'COMPLETED',
     'FAILED'
 );

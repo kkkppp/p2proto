@@ -7,9 +7,12 @@ import liquibase.exception.DatabaseException;
 import liquibase.sql.Sql;
 import liquibase.sqlgenerator.SqlGeneratorFactory;
 import liquibase.statement.SqlStatement;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -19,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 public class DDLExecutor {
 
     private final DataSource dataSource;
@@ -32,7 +36,9 @@ public class DDLExecutor {
      * Executes all generated DDL statements. The transaction should be
      * handled outside (e.g., via @Transactional on the caller).
      */
-    public void executeDDL(DDLCommand command) throws SQLException, DatabaseException {
+    @Transactional
+    public List<String> executeDDL(DDLCommand command) throws SQLException, DatabaseException {
+        List<String> executed = new ArrayList<>();
         // Obtain the existing transaction-bound connection, if any
         Connection connection = DataSourceUtils.getConnection(dataSource);
 
@@ -56,11 +62,13 @@ public class DDLExecutor {
             // Execute each SQL statement in this (already open) transaction
             for (String sql : sqlTexts) {
                 stmt.execute(sql);
+                executed.add(sql);
             }
 
         } finally {
             // Return the Connection to the transaction manager or pool
             DataSourceUtils.releaseConnection(connection, dataSource);
         }
+        return executed;
     }
 }

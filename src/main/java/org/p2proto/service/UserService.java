@@ -1,4 +1,4 @@
-package org.p2proto.util;
+package org.p2proto.service;
 
 import lombok.Getter;
 import org.p2proto.dto.CurrentUser;
@@ -9,10 +9,10 @@ import java.util.UUID;
 
 @Service
 @Getter
-public class UserUtil {
+public class UserService {
     private final JdbcTemplate jdbcTemplate;
 
-    public UserUtil(JdbcTemplate jdbcTemplate) {
+    public UserService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

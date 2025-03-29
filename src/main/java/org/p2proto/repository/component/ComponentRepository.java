@@ -51,7 +51,7 @@ public class ComponentRepository {
         // Postgres-specific syntax: "RETURNING id" returns the generated UUID
         String sql = """
         INSERT INTO components (component_type, status, created_by)
-        VALUES (?, ?, ?)
+        VALUES (?::component_type_enum, ?::component_status_enum, ?)
         RETURNING id
     """;
 
@@ -100,7 +100,7 @@ public class ComponentRepository {
     public int update(Component component) {
         String sql = """
             UPDATE components
-               SET status         = ?, 
+               SET status         = ?::component_status_enum, 
                    updated_at     = ?, 
                    updated_by     = ?
              WHERE id = ?

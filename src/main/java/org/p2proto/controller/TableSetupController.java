@@ -41,6 +41,9 @@ public class TableSetupController {
     public ResponseEntity<Map<String, String>> saveTable(@ModelAttribute("table") TableMetadata tableMetadata, @ModelAttribute("currentUser") CurrentUser currentUser) {
         Map<String, String> response = new HashMap<>();
 
+        if (tableMetadata.getColumns() == null) {
+            tableMetadata.setColumns(TableService.defaultColumns());
+        }
         tableService.createTable(tableMetadata, currentUser);
 
         response.put("status", "success");

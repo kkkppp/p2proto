@@ -2,7 +2,7 @@ package org.p2proto.controller;
 
 import org.p2proto.dto.CurrentUser;
 import org.p2proto.model.MenuItem;
-import org.p2proto.util.UserUtil;
+import org.p2proto.service.UserService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -17,10 +17,10 @@ import java.util.UUID;
 @ControllerAdvice
 public class GlobalControllerAdvice {
 
-    private final UserUtil userUtil;
+    private final UserService userService;
 
-    public GlobalControllerAdvice(UserUtil userUtil) {
-        this.userUtil = userUtil;
+    public GlobalControllerAdvice(UserService userService) {
+        this.userService = userService;
     }
 
     @ModelAttribute("menu")
@@ -69,7 +69,7 @@ public class GlobalControllerAdvice {
             String[] tmp = subject.split(":");
             if (tmp.length == 3) {
                 UUID uuid = UUID.fromString(tmp[2]);
-                CurrentUser userFromDb = userUtil.findUserByUuid(uuid);
+                CurrentUser userFromDb = userService.findUserByUuid(uuid);
                 session.setAttribute("myUserData", userFromDb);
                 return userFromDb;
             }
