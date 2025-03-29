@@ -6,7 +6,7 @@ import org.p2proto.model.record.FieldType;
 import org.p2proto.model.record.FormField;
 import org.p2proto.model.record.RecordForm;
 import org.p2proto.repository.TableMetadataCrudRepository;
-import org.p2proto.util.TableMetadataUtil;
+import org.p2proto.service.TableMetadataUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -14,7 +14,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 import java.util.*;
 import java.util.stream.Collectors;
 

@@ -6,7 +6,7 @@ import liquibase.change.ConstraintsConfig;
 import liquibase.change.core.CreateTableChange;
 import lombok.Data;
 import org.p2proto.dto.TableMetadata;
-import org.p2proto.util.TableMetadataUtil;
+import org.p2proto.service.TableMetadataUtil;
 
 @Data
 public class CreateTableCommand implements DDLCommand {

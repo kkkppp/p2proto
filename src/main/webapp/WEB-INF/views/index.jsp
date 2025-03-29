@@ -256,7 +256,7 @@
 
 <!-- Main Content Area -->
 <div class="main-content">
-    <h1 class="welcome">Welcome, ${username}!</h1>
+    <h1 class="welcome">Welcome, ${currentUser.fullName}!</h1>
     <div id="contentArea">
         <!-- Dynamic content will be loaded here -->
         <p class="loading">Loading...</p>

@@ -1,4 +1,4 @@
-package org.p2proto.util;
+package org.p2proto.service;
 
 import lombok.Getter;
 import org.p2proto.ddl.Domain;
