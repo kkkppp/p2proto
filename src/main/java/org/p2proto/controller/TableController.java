@@ -6,7 +6,7 @@ import org.p2proto.model.record.FieldType;
 import org.p2proto.model.record.FormField;
 import org.p2proto.model.record.RecordForm;
 import org.p2proto.repository.TableMetadataCrudRepository;
-import org.p2proto.service.TableMetadataUtil;
+import org.p2proto.service.TableService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,11 +21,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/table")
 public class TableController {
 
-    private final TableMetadataUtil util;
+    private final TableService tableService;
     private final HttpServletRequest request;
 
-    public TableController(TableMetadataUtil util, HttpServletRequest request) {
-        this.util = util;
+    public TableController(TableService tableService, HttpServletRequest request) {
+        this.tableService = tableService;
         this.request = request;
     }
     /**
@@ -37,8 +37,8 @@ public class TableController {
      */
     private void prepareTableViewModel(String tableName, List<String> fieldsToRender, Model model) {
         // Retrieve the TableMetadata for the given table name
-        UUID tableID = util.findAll().get(tableName);
-        TableMetadata tableMetadata = util.findByID(tableID);
+        UUID tableID = tableService.findAll().get(tableName);
+        TableMetadata tableMetadata = tableService.findByID(tableID);
 
         // Extract column information
         List<String> allColumns = tableMetadata.getColumns().stream()
@@ -46,7 +46,7 @@ public class TableController {
                 .collect(Collectors.toList());
 
         // Retrieve all rows from the CRUD repository
-        TableMetadataCrudRepository repo = new TableMetadataCrudRepository(util.getJdbcTemplate(), tableMetadata, "id");
+        TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
         List<Map<String, Object>> records = repo.findAll();
 
         // Determine which fields to render
@@ -116,8 +116,8 @@ public class TableController {
      */
     private void prepareRecordForm(String tableName, String recordId, Model model) {
         // 1. Look up the metadata
-        UUID tableID = util.findAll().get(tableName);
-        TableMetadata tableMetadata = util.findByID(tableID);
+        UUID tableID = tableService.findAll().get(tableName);
+        TableMetadata tableMetadata = tableService.findByID(tableID);
 
         // 2. Build the empty (or default) form fields
         List<FormField> fields = tableMetadata.getColumns().stream()
@@ -130,7 +130,7 @@ public class TableController {
         // 3. If editing, fetch existing record & populate fields
         if (recordId != null) {
             TableMetadataCrudRepository repo =
-                    new TableMetadataCrudRepository(util.getJdbcTemplate(), tableMetadata, "id");
+                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
 
             Map<String, Object> recordData = repo.findById(Integer.valueOf(recordId));
             if (recordData != null) {
@@ -178,11 +178,11 @@ public class TableController {
 
         try {
             // Retrieve TableMetadata based on tableName
-            UUID tableID = util.findAll().get(tableName);
-            TableMetadata tableMetadata = util.findByID(tableID);
+            UUID tableID = tableService.findAll().get(tableName);
+            TableMetadata tableMetadata = tableService.findByID(tableID);
 
             // Initialize the repository
-            TableMetadataCrudRepository repo = new TableMetadataCrudRepository(util.getJdbcTemplate(), tableMetadata, "id");
+            TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
 
             // Convert RecordForm to a Map<String, Object> for saving
             Map<String, Object> recordData = record.getFields().stream()
@@ -217,12 +217,12 @@ public class TableController {
         Map<String, String> response = new HashMap<>();
         try {
             // 1. Retrieve table metadata
-            UUID tableID = util.findAll().get(tableName);
-            TableMetadata tableMetadata = util.findByID(tableID);
+            UUID tableID = tableService.findAll().get(tableName);
+            TableMetadata tableMetadata = tableService.findByID(tableID);
 
             // 2. Initialize repository
             TableMetadataCrudRepository repo =
-                    new TableMetadataCrudRepository(util.getJdbcTemplate(), tableMetadata, "id");
+                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
 
             // 3. Perform the delete
             repo.delete(Integer.valueOf(id));

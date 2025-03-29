@@ -3,7 +3,6 @@ package org.p2proto.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.p2proto.dto.CurrentUser;
 import org.p2proto.dto.TableMetadata;
-import org.p2proto.service.TableMetadataUtil;
 import org.p2proto.service.TableService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;

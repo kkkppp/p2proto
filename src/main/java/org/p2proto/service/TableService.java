@@ -1,6 +1,7 @@
 package org.p2proto.service;
 
 import liquibase.exception.DatabaseException;
+import lombok.Getter;
 import org.p2proto.ddl.CreateTableCommand;
 import org.p2proto.ddl.DDLExecutor;
 import org.p2proto.ddl.Domain;
@@ -27,6 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Getter
 public class TableService {
 
     private final PlatformTransactionManager transactionManager;

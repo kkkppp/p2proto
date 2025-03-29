@@ -6,7 +6,7 @@ import liquibase.change.ConstraintsConfig;
 import liquibase.change.core.CreateTableChange;
 import lombok.Data;
 import org.p2proto.dto.TableMetadata;
-import org.p2proto.service.TableMetadataUtil;
+import org.p2proto.service.TableService;
 
 @Data
 public class CreateTableCommand implements DDLCommand {
@@ -15,7 +15,7 @@ public class CreateTableCommand implements DDLCommand {
 
     public CreateTableCommand(String tableName, String tableLabel, String tableLabelPlural) {
         table = new TableMetadata(tableName, tableLabel, tableLabelPlural);
-        table.setColumns(TableMetadataUtil.defaultColumns());
+        table.setColumns(TableService.defaultColumns());
     }
 
     public CreateTableCommand(TableMetadata table) {
