@@ -47,6 +47,7 @@ public class TableSetupController {
         if (tableMetadata.getColumns() == null) {
             tableMetadata.setColumns(TableService.defaultColumns());
         }
+        tableMetadata.setTableType(TableMetadata.TableTypeEnum.STANDARD);
         tableService.createTable(tableMetadata, currentUser);
 
         response.put("status", "success");

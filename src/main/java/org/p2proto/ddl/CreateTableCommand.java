@@ -15,6 +15,7 @@ public class CreateTableCommand implements DDLCommand {
 
     public CreateTableCommand(String tableName, String tableLabel, String tableLabelPlural) {
         table = new TableMetadata(tableName, tableLabel, tableLabelPlural);
+        table.setTableType(TableMetadata.TableTypeEnum.STANDARD);
         table.setColumns(TableService.defaultColumns());
     }
 

@@ -31,14 +31,17 @@ public class TableService {
     private final JdbcTemplate jdbcTemplate;
     private final DDLExecutor ddlExecutor;
     private final ComponentService componentService;
+    private final TableRepository tableRepository;
 
     @Autowired
     public TableService(ComponentService componentService,
                         JdbcTemplate jdbcTemplate,
+                        TableRepository tableRepository,
                         DDLExecutor ddlExecutor) {
         this.componentService = componentService;
         this.jdbcTemplate = jdbcTemplate;
         this.ddlExecutor = ddlExecutor;
+        this.tableRepository = tableRepository;
     }
 
     @Transactional(propagation = Propagation.SUPPORTS)
@@ -70,7 +73,9 @@ public class TableService {
                 columnMetadata.setId(columnComponent.getId());
                 componentService.createHistory(columnComponent.getId(), ComponentHistory.ComponentHistoryStatus.COMPLETED, currentUser.getId());
             }
-
+            // create table metadata
+            tableRepository.createMetadataInDb(tableMetadata);
+            // finalize component and history
             componentService.markSuccess(component.getId(), historyId, ddl);
         } catch (DatabaseException | SQLException e) {
             // in case of DDL failure, mark table component as inactive and history entry as failed. No entries for columns
