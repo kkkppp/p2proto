@@ -1,11 +1,12 @@
 package org.p2proto.controller;
 
+import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.TableMetadata;
-import org.p2proto.dto.TableMetadata.ColumnMetaData;
 import org.p2proto.model.record.FieldType;
 import org.p2proto.model.record.FormField;
 import org.p2proto.model.record.RecordForm;
 import org.p2proto.repository.TableMetadataCrudRepository;
+import org.p2proto.repository.table.TableRepository;
 import org.p2proto.service.TableService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -22,10 +23,12 @@ import java.util.stream.Collectors;
 public class TableController {
 
     private final TableService tableService;
+    private final TableRepository tableRepository;
     private final HttpServletRequest request;
 
-    public TableController(TableService tableService, HttpServletRequest request) {
+    public TableController(TableService tableService, TableRepository tableRepository, HttpServletRequest request) {
         this.tableService = tableService;
+        this.tableRepository = tableRepository;
         this.request = request;
     }
     /**
@@ -37,12 +40,12 @@ public class TableController {
      */
     private void prepareTableViewModel(String tableName, List<String> fieldsToRender, Model model) {
         // Retrieve the TableMetadata for the given table name
-        UUID tableID = tableService.findAll().get(tableName);
-        TableMetadata tableMetadata = tableService.findByID(tableID);
+        UUID tableID = tableRepository.findAll().get(tableName);
+        TableMetadata tableMetadata = tableRepository.findByID(tableID);
 
         // Extract column information
         List<String> allColumns = tableMetadata.getColumns().stream()
-                .map(ColumnMetaData::getName)
+                .map(org.p2proto.dto.ColumnMetaData::getName)
                 .collect(Collectors.toList());
 
         // Retrieve all rows from the CRUD repository
@@ -56,7 +59,7 @@ public class TableController {
         model.addAttribute("allFields", String.join(",", allColumns));
         model.addAttribute("fieldsToRender", String.join(",", fieldsToShow));
         model.addAttribute("columnLabels", tableMetadata.getColumns().stream()
-                .collect(Collectors.toMap(ColumnMetaData::getName, ColumnMetaData::getLabel)));
+                .collect(Collectors.toMap(org.p2proto.dto.ColumnMetaData::getName, org.p2proto.dto.ColumnMetaData::getLabel)));
         model.addAttribute("records", records);
         model.addAttribute("tableName", tableName);
         model.addAttribute("tableLabel", tableMetadata.getTableLabel());
@@ -116,8 +119,8 @@ public class TableController {
      */
     private void prepareRecordForm(String tableName, String recordId, Model model) {
         // 1. Look up the metadata
-        UUID tableID = tableService.findAll().get(tableName);
-        TableMetadata tableMetadata = tableService.findByID(tableID);
+        UUID tableID = tableRepository.findAll().get(tableName);
+        TableMetadata tableMetadata = tableRepository.findByID(tableID);
 
         // 2. Build the empty (or default) form fields
         List<FormField> fields = tableMetadata.getColumns().stream()
@@ -178,8 +181,8 @@ public class TableController {
 
         try {
             // Retrieve TableMetadata based on tableName
-            UUID tableID = tableService.findAll().get(tableName);
-            TableMetadata tableMetadata = tableService.findByID(tableID);
+            UUID tableID = tableRepository.findAll().get(tableName);
+            TableMetadata tableMetadata = tableRepository.findByID(tableID);
 
             // Initialize the repository
             TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
@@ -217,8 +220,8 @@ public class TableController {
         Map<String, String> response = new HashMap<>();
         try {
             // 1. Retrieve table metadata
-            UUID tableID = tableService.findAll().get(tableName);
-            TableMetadata tableMetadata = tableService.findByID(tableID);
+            UUID tableID = tableRepository.findAll().get(tableName);
+            TableMetadata tableMetadata = tableRepository.findByID(tableID);
 
             // 2. Initialize repository
             TableMetadataCrudRepository repo =

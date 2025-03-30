@@ -59,7 +59,6 @@ public class DDLExecutor {
                 }
             }
 
-            // Execute each SQL statement in this (already open) transaction
             for (String sql : sqlTexts) {
                 stmt.execute(sql);
                 executed.add(sql);

@@ -50,24 +50,25 @@ public class ComponentHistoryRepository {
      * CREATE: Insert a new record into the `component_history` table.
      * BIGINT `id` is auto-generated, so we do not specify it in the INSERT.
      */
-    public int save(ComponentHistory ch) {
+
+    public Long save(ComponentHistory ch) {
         String sql = """
             INSERT INTO component_history
                    (component_id, parent_id, status, user_id, timestamp,
                     ddl_statement, old_state, new_state)
             VALUES (?, ?, ?::component_history_status_enum, ?, ?,
                     ?, ?::jsonb, ?::jsonb)
+            RETURNING id
         """;
-        return jdbcTemplate.update(
+        return jdbcTemplate.queryForObject(
                 sql,
+                Long.class,
                 ch.getComponentId(),
                 ch.getParentId(),
                 ch.getStatus().name(),
                 ch.getUserId(),
-                // If timestamp is null, default to "now", or rely on DB default
                 ch.getTimestamp() != null ? ch.getTimestamp() : new Timestamp(System.currentTimeMillis()),
                 ch.getDdlStatement(),
-                // Use "{}" if oldState/newState are null, or store them as-is
                 ch.getOldState() != null ? ch.getOldState() : "{}",
                 ch.getNewState() != null ? ch.getNewState() : "{}"
         );
