@@ -1,7 +1,9 @@
 package org.p2proto.controller;
 
 import org.p2proto.dto.CurrentUser;
+import org.p2proto.dto.TableMetadata;
 import org.p2proto.model.MenuItem;
+import org.p2proto.repository.table.TableRepository;
 import org.p2proto.service.UserService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -18,9 +21,11 @@ import java.util.UUID;
 public class GlobalControllerAdvice {
 
     private final UserService userService;
+    private final TableRepository tableRepository;
 
-    public GlobalControllerAdvice(UserService userService) {
+    public GlobalControllerAdvice(UserService userService, TableRepository tableRepository) {
         this.userService = userService;
+        this.tableRepository = tableRepository;
     }
 
     @ModelAttribute("menu")
@@ -29,9 +34,14 @@ public class GlobalControllerAdvice {
                 new MenuItem("Tables", "/tableSetup")
         ));
 
-        MenuItem tables = new MenuItem("Tables", "#", Arrays.asList(
-                new MenuItem("Manage Users", "/table/users?fields=username,email,first_name,last_name")
-        ));
+        List<MenuItem> tableItems = new ArrayList<>();
+        tableItems.add(new MenuItem("Manage Users", "/table/users?fields=username,email,first_name,last_name"));
+        for (TableMetadata table : tableRepository.findAllWithLabels()) {
+            if (table.getTableType().equals(TableMetadata.TableTypeEnum.STANDARD)) {
+                tableItems.add(new MenuItem(table.getTablePluralLabel(), "/table/" + table.getTableName()));
+            }
+        }
+        MenuItem tables = new MenuItem("Tables", "#", tableItems);
 
         MenuItem access = new MenuItem("Access", "#", Arrays.asList(
                 new MenuItem("Manage Groups", "/groups"),
