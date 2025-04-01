@@ -136,6 +136,9 @@
                     if (data.status === 'success') {
                         // Fetch and load the updated list of records
                         loadContentFromUrl(data.redirectUrl);
+                        if (form.getAttribute('action').includes('/tableSetup/save')) {
+                            reloadSidebar();
+                        }
                     } else if (data.status === 'error') {
                         // Display error message(s)
                         contentArea.innerHTML = '<div class="alert alert-danger">'+data.message+'</div>';
@@ -249,10 +252,37 @@
                 .catch(error => console.error('Delete error:', error));
         }
     </script>
+    <script>
+        function reloadSidebar() {
+            const sidebarContainer = document.getElementById('sidebarContainer');
+
+            fetch('${pageContext.request.contextPath}/ajax/sidebar', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to reload sidebar');
+                    return response.text();
+                })
+                .then(html => {
+                    sidebarContainer.innerHTML = html;
+                    console.log("Sidebar reloaded successfully");
+                })
+                .catch(error => {
+                    console.error('Error reloading sidebar:', error);
+                    sidebarContainer.innerHTML = '<div class="alert alert-danger">Failed to reload sidebar.</div>';
+                });
+        }
+    </script>
 </head>
 <body>
 <!-- Include Sidebar -->
-<jsp:include page="/WEB-INF/views/includes/sidebar.jsp" />
+<div id="sidebarContainer">
+    <jsp:include page="/WEB-INF/views/includes/sidebar.jsp" />
+</div>
 
 <!-- Main Content Area -->
 <div class="main-content">

@@ -17,4 +17,10 @@ public class HomeController {
         }
         return "index";  // Maps to index.jsp
     }
+
+    @GetMapping("/ajax/sidebar")
+    public String loadSidebar() {
+        return "includes/sidebar"; // Resolves to /WEB-INF/views/includes/sidebar.jsp
+    }
+
 }

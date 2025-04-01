@@ -117,7 +117,14 @@ public class TableService {
                 Map.of()
         );
 
-        return List.of(idCol, createdAtCol, updatedAtCol);
+        ColumnMetaData summaryCol = new ColumnMetaData(
+                "summary",
+                "Summary",
+                Domain.TEXT,
+                Map.of()
+        );
+
+        return List.of(idCol, summaryCol, createdAtCol, updatedAtCol);
     }
 
 
