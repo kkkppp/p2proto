@@ -10,14 +10,16 @@
         modelAttribute="table"
         class="create-user-form"
         aria-labelledby="createUserForm">
-
+  <form:hidden path="id" />
   <div class="form-group">
     <label for="tableName"><fmt:message key="tables.name" /></label>
     <form:input
             path="tableName"
             id="tableName"
             class="form-control"
-            aria-required="true" />
+            aria-required="true"
+            disabled="${not empty table.id}"
+    />
     <label for="tableLabel"><fmt:message key="tables.label" /></label>
     <form:input
             path="tableLabel"

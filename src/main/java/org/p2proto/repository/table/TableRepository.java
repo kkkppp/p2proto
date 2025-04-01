@@ -217,7 +217,23 @@ public class TableRepository {
         }
     }
 
-    public void createColumnMetadataInDb(ColumnMetaData column, UUID tableId) {
+    public void updateMetadataInDb(TableMetadata table) {
+/*        String tableSql = "INSERT INTO tables (id, TYPE, logical_name, removable) VALUES (?, ?::table_type_enum, ?, ?)";
+
+        jdbcTemplate.update(tableSql,
+                table.getId(),
+                table.getTableType().name(),
+                table.getTableName(),
+                true
+        );*/
+
+        String labelSql = "update nls_labels set label_text = ? where component_id= ?::uuid and label_type=?::label_type_enum and language_code=?";
+
+        jdbcTemplate.update(labelSql, table.getTableLabel(), table.getId(), "LABEL", DEFAULT_LANGUAGE);
+        jdbcTemplate.update(labelSql, table.getTablePluralLabel(), table.getId(), "PLURAL_LABEL", DEFAULT_LANGUAGE);
+
+    }
+        public void createColumnMetadataInDb(ColumnMetaData column, UUID tableId) {
         String sql = "INSERT INTO fields (id, table_id, name, data_type, removable, primary_key, auto_generated, properties) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb)";
 
         jdbcTemplate.update(sql,

@@ -61,17 +61,17 @@ public class TableService {
             // TODO validation of table and field names
             TableMetadata tableMetadata = command.getTable();
             // create component and history entry for table early so they are commited before DDL starts
-            component = componentService.createComponent(Component.ComponentTypeEnum.TABLE, Component.ComponentStatusEnum.LOCKED, currentUser.getId());
+            component = componentService.createComponent(Component.ComponentTypeEnum.TABLE, Component.ComponentStatusEnum.LOCKED, currentUser.getCurrentUserId());
             tableMetadata.setId(component.getId());
-            historyId = componentService.createHistory(component.getId(), ComponentHistory.ComponentHistoryStatus.IN_PROGRESS, currentUser.getId());
+            historyId = componentService.createHistory(component.getId(), ComponentHistory.ComponentHistoryStatus.IN_PROGRESS, currentUser.getCurrentUserId());
 
             List<String> ddl = ddlExecutor.executeDDL(command);
 
             // after successful DDL, create remaining component and history entries for fields as successful
             for (ColumnMetaData columnMetadata : tableMetadata.getColumns()) {
-                Component columnComponent = componentService.createComponent(Component.ComponentTypeEnum.FIELD, Component.ComponentStatusEnum.ACTIVE, currentUser.getId());
+                Component columnComponent = componentService.createComponent(Component.ComponentTypeEnum.FIELD, Component.ComponentStatusEnum.ACTIVE, currentUser.getCurrentUserId());
                 columnMetadata.setId(columnComponent.getId());
-                componentService.createHistory(columnComponent.getId(), ComponentHistory.ComponentHistoryStatus.COMPLETED, currentUser.getId());
+                componentService.createHistory(columnComponent.getId(), ComponentHistory.ComponentHistoryStatus.COMPLETED, currentUser.getCurrentUserId());
             }
             // create table metadata
             tableRepository.createMetadataInDb(tableMetadata);

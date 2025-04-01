@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Controller
 @RequestMapping("/tableSetup")
@@ -37,23 +38,31 @@ public class TableSetupController {
     @GetMapping("/create")
     public String createTable(Model model) {
         model.addAttribute("table", new TableMetadata());
-        return "tableSetup/create";
+        return "tableSetup/main";
+    }
+
+    @GetMapping("/edit/{id}")
+    public String updateTable(@PathVariable("id") UUID id, Model model) {
+        TableMetadata table = tableRepository.findByID(id);
+        model.addAttribute("table", table);
+        return "tableSetup/main";
     }
 
     @PostMapping("/save")
     public ResponseEntity<Map<String, String>> saveTable(@ModelAttribute("table") TableMetadata tableMetadata, @ModelAttribute("currentUser") CurrentUser currentUser) {
         Map<String, String> response = new HashMap<>();
-
-        if (tableMetadata.getColumns() == null) {
-            tableMetadata.setColumns(TableService.defaultColumns());
+        if (tableMetadata.getId() == null) {
+            if (tableMetadata.getColumns() == null) {
+                tableMetadata.setColumns(TableService.defaultColumns());
+            }
+            tableMetadata.setTableType(TableMetadata.TableTypeEnum.STANDARD);
+            tableService.createTable(tableMetadata, currentUser);
+        } else {
+            tableRepository.updateMetadataInDb(tableMetadata);
         }
-        tableMetadata.setTableType(TableMetadata.TableTypeEnum.STANDARD);
-        tableService.createTable(tableMetadata, currentUser);
-
         response.put("status", "success");
         response.put("redirectUrl", "tableSetup");
         return ResponseEntity.ok(response);
-
     }
 
 }
