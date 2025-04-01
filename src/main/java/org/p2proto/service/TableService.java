@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.p2proto.ddl.CreateTableCommand;
 import org.p2proto.ddl.DDLExecutor;
 import org.p2proto.ddl.Domain;
+import org.p2proto.dto.ColumnDefaultHolder;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.CurrentUser;
 import org.p2proto.dto.TableMetadata;
@@ -100,6 +101,8 @@ public class TableService {
                 Domain.AUTOINCREMENT,
                 true,
                 true,
+                false,
+                null,
                 Map.of()
         );
 
@@ -107,6 +110,7 @@ public class TableService {
                 "created_at",
                 "Created At",
                 Domain.DATETIME,
+                null,
                 Map.of()
         );
 
@@ -114,6 +118,7 @@ public class TableService {
                 "updated_at",
                 "Updated At",
                 Domain.DATETIME,
+                null,
                 Map.of()
         );
 
@@ -121,6 +126,7 @@ public class TableService {
                 "summary",
                 "Summary",
                 Domain.TEXT,
+                null,
                 Map.of()
         );
 

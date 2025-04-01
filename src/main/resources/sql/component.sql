@@ -166,6 +166,7 @@ CREATE TABLE fields
     removable BOOLEAN NOT NULL,
     primary_key BOOLEAN NOT NULL,
     auto_generated BOOLEAN NOT NULL,
+    default_value JSONB,
     properties JSONB,
     CONSTRAINT fk_fields_components
         FOREIGN KEY (id)

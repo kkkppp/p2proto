@@ -1,8 +1,10 @@
 package org.p2proto.repository.table;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.tool.hbm2ddl.ColumnMetadata;
 import org.p2proto.ddl.Domain;
+import org.p2proto.dto.ColumnDefaultHolder;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.TableMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +47,8 @@ public class TableRepository {
      * Query to retrieve field metadata.
      */
     public static final String FIELDS_QUERY =
-            "SELECT f.id AS field_id, f.name AS field_name, f.data_type, f.auto_generated " +
-                    "FROM fields f WHERE f.table_id = ?::uuid";
+            "SELECT f.id AS field_id, f.name AS field_name, f.data_type, f.auto_generated, f.removable, f.default_value, f.properties" +
+                    " FROM fields f WHERE f.table_id = ?::uuid";
     /**
      * Query to retrieve field labels.
      */
@@ -184,7 +186,16 @@ public class TableRepository {
             int rawDataType = (int) row.get("data_type");
             Domain domain = Domain.fromCode(rawDataType);
 
-            return new ColumnMetaData(fieldId, fieldName, fieldLabel, domain, (Boolean) row.get("primary_key"), (Boolean) row.get("auto_generated"), Collections.emptyMap());
+            ColumnDefaultHolder defaultValue;
+            try {
+                defaultValue = ColumnDefaultHolder.fromJson((String)row.get("default_value"));
+            } catch (JsonProcessingException e) {
+                log.error(e.getLocalizedMessage());
+                defaultValue = null;
+            }
+            return new ColumnMetaData(fieldId, fieldName, fieldLabel, domain, (Boolean) row.get("primary_key"),
+                    (Boolean) row.get("auto_generated"), (Boolean) row.get("removable"), defaultValue,
+                    Collections.emptyMap());
         }).collect(Collectors.toList());
 
         return new TableMetadata(

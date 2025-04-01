@@ -36,6 +36,12 @@
            class="btn btn-secondary"
            onclick="loadContent(event, this);"><fmt:message key="button.edit" /></a>
 
+        <!-- Fields Button -->
+        <a href="${pageContext.request.contextPath}/tableSetup/fields/${table.id}"
+           data-url="${pageContext.request.contextPath}/tableSetup/fields/${table.id}"
+           class="btn btn-secondary"
+           onclick="loadContent(event, this);"><fmt:message key="button.fields" /></a>
+
         <!-- Delete Button -->
         <a href="${pageContext.request.contextPath}/tableSetup/delete/${table.id}"
            class="btn btn-danger"

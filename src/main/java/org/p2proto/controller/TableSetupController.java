@@ -48,6 +48,13 @@ public class TableSetupController {
         return "tableSetup/main";
     }
 
+    @GetMapping("/fields/{id}")
+    public String tableFields(@PathVariable("id") UUID id, Model model) {
+        TableMetadata table = tableRepository.findByID(id);
+        model.addAttribute("table", table);
+        return "tableSetup/fields";
+    }
+
     @PostMapping("/save")
     public ResponseEntity<Map<String, String>> saveTable(@ModelAttribute("table") TableMetadata tableMetadata, @ModelAttribute("currentUser") CurrentUser currentUser) {
         Map<String, String> response = new HashMap<>();
