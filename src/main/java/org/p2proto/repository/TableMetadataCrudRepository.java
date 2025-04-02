@@ -2,17 +2,22 @@ package org.p2proto.repository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.p2proto.ddl.Domain;
+import org.p2proto.dto.ColumnDefaultHolder;
 import org.p2proto.dto.TableMetadata;
 import org.p2proto.dto.ColumnMetaData;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.p2proto.service.TableService.CURRENT_TIMESTAMP;
 
 /**
  * Basic CRUD repository that uses TableMetadata to dynamically build
@@ -76,7 +81,7 @@ public class TableMetadataCrudRepository {
      *
      * @throws IllegalArgumentException if no valid columns remain.
      */
-    private Map<String, Object> prepareAndFilterRowData(Map<String, Object> rowData) {
+    private Map<String, Object> prepareAndFilterRowData(Map<String, Object> rowData, boolean insert) {
         // Create a mapping from column name to its metadata for quick lookup
         Map<String, ColumnMetaData> columnsByName = tableMetadata.getColumns()
                 .stream()
@@ -85,7 +90,22 @@ public class TableMetadataCrudRepository {
 
         Map<String, Object> filteredData = new HashMap<>();
 
-        for (Map.Entry<String, Object> entry : rowData.entrySet()) {
+        Map<String, Object> defaultData = new HashMap<>();
+        for (Map.Entry<String, ColumnMetaData> entry : columnsByName.entrySet()) {
+            String columnName = entry.getKey();
+            Object rowValue = rowData.get(columnName);
+            ColumnMetaData columnMetaData = entry.getValue();
+            if ((rowValue == null || rowValue.toString().isEmpty()) && columnMetaData.getDefaultValue() != null) { // either null or missing in rowData at all
+                rowValue = getDefaultValue(columnMetaData, insert);
+                if (rowValue != null) {
+                    defaultData.put(columnName, rowValue);
+                }
+            }
+        }
+        Map<String, Object> resultingRowData = new HashMap<>(rowData);
+        resultingRowData.putAll(defaultData);
+
+        for (Map.Entry<String, Object> entry : resultingRowData.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
             if (!columnsByName.containsKey(key)) continue;
@@ -103,6 +123,27 @@ public class TableMetadataCrudRepository {
         return filteredData;
     }
 
+    private Object getDefaultValue(ColumnMetaData meta, boolean insert) {
+        Object result = null;
+        ColumnDefaultHolder defaultValue = meta.getDefaultValue();
+        ColumnDefaultHolder.TriggerEvent triggerEvent = defaultValue.getTriggerEvent();
+        ColumnDefaultHolder.DefaultValueType valueType = defaultValue.getValueType();
+        if ((insert && triggerEvent.equals(ColumnDefaultHolder.TriggerEvent.ON_CREATE)) ||
+           (! insert && triggerEvent.equals(ColumnDefaultHolder.TriggerEvent.ON_UPDATE))) {
+            result = getClientValue(defaultValue.getValue(), valueType, insert);
+        }
+        return result;
+    }
+
+    private Object getClientValue(String value, ColumnDefaultHolder.DefaultValueType valueType, boolean insert) {
+        if (valueType.equals(ColumnDefaultHolder.DefaultValueType.CONSTANT)) return value;
+        if (CURRENT_TIMESTAMP.equals(value)) {
+            return Timestamp.from(Instant.now());
+        }
+        throw new RuntimeException("Unknown formula: " + value );
+    }
+
+
     /**
      * Inserts a new row. The row data should map column names to their values.
      * Only columns that exist in TableMetadata will be included in the insert.
@@ -113,7 +154,7 @@ public class TableMetadataCrudRepository {
 
     public int insert(Map<String, Object> rowData) {
         // Reuse the helper method
-        Map<String, Object> filteredData = prepareAndFilterRowData(rowData);
+        Map<String, Object> filteredData = prepareAndFilterRowData(rowData, true);
 
         // Build the column list and placeholders for the INSERT statement
         List<String> columns = new ArrayList<>(filteredData.keySet());
@@ -145,7 +186,7 @@ public class TableMetadataCrudRepository {
      */
     public int update(Integer pkValue, Map<String, Object> rowData) {
         // Reuse the helper method
-        Map<String, Object> filteredData = prepareAndFilterRowData(rowData);
+        Map<String, Object> filteredData = prepareAndFilterRowData(rowData, false);
 
         // Build the "SET col = ?" portion
         List<String> assignments = new ArrayList<>();

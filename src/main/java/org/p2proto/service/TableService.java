@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TableService {
 
+    public static final String CURRENT_TIMESTAMP = "CURRENT_TIMESTAMP";
     private final JdbcTemplate jdbcTemplate;
     private final DDLExecutor ddlExecutor;
     private final ComponentService componentService;
@@ -110,7 +111,12 @@ public class TableService {
                 "created_at",
                 "Created At",
                 Domain.DATETIME,
-                null,
+                ColumnDefaultHolder.builder().
+                        executionContext(ColumnDefaultHolder.ExecutionContext.CLIENT_SIDE).
+                        triggerEvent(ColumnDefaultHolder.TriggerEvent.ON_CREATE).
+                        valueType(ColumnDefaultHolder.DefaultValueType.FORMULA).
+                        value("CURRENT_TIMESTAMP").
+                        build(),
                 Map.of()
         );
 
@@ -118,7 +124,12 @@ public class TableService {
                 "updated_at",
                 "Updated At",
                 Domain.DATETIME,
-                null,
+                ColumnDefaultHolder.builder().
+                        executionContext(ColumnDefaultHolder.ExecutionContext.CLIENT_SIDE).
+                        triggerEvent(ColumnDefaultHolder.TriggerEvent.ON_UPDATE).
+                        valueType(ColumnDefaultHolder.DefaultValueType.FORMULA).
+                        value(CURRENT_TIMESTAMP).
+                        build(),
                 Map.of()
         );
 

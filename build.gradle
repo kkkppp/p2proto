@@ -63,6 +63,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.28'
 
     // PostgreSQL Driver
+    compileOnly 'org.postgresql:postgresql:42.6.0'
     runtimeOnly 'org.postgresql:postgresql:42.6.0'
 
     // Servlet API
