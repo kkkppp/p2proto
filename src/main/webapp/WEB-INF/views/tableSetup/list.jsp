@@ -1,7 +1,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-<!-- Custom Table Tabular View -->
 <h2><fmt:message key="tables.title" /></h2>
 <a href="${pageContext.request.contextPath}/tableSetup/create"
    data-url="${pageContext.request.contextPath}/tableSetup/create"
@@ -23,7 +22,6 @@
   </tr>
   </thead>
   <tbody>
-  <!-- Iterate over each user and render table rows -->
   <c:forEach var="table" items="${metadataList}">
     <tr>
       <td>${table.tableName}</td>

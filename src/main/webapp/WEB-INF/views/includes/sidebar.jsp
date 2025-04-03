@@ -1,4 +1,5 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!-- Left Sidebar -->
 <div class="sidebar">
     <h1>Platform 2</h1>
@@ -29,6 +30,10 @@
 
     <!-- Logout Link at the Bottom -->
     <div class="logout-container">
+        <fmt:message key="current.user">
+            <fmt:param value="${currentUser.fullName}"/>
+        </fmt:message>
+        <br>
         <a href="${pageContext.request.contextPath}/logout" class="logout-link">Logout</a>
     </div>
 </div>
@@ -44,6 +49,7 @@
     .logout-container {
         margin-top: auto; /* Pushes logout to the bottom */
         padding: 20px;
+        color: var(--keycloak-text);
     }
 
     .logout-link {

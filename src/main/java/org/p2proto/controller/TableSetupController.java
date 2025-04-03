@@ -52,7 +52,7 @@ public class TableSetupController {
     public String tableFields(@PathVariable("id") UUID id, Model model) {
         TableMetadata table = tableRepository.findByID(id);
         model.addAttribute("table", table);
-        return "tableSetup/fields";
+        return "tableSetup/fieldsList";
     }
 
     @PostMapping("/save")
