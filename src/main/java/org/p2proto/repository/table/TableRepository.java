@@ -48,14 +48,9 @@ public class TableRepository {
      * Query to retrieve field metadata.
      */
     public static final String FIELDS_QUERY =
-            "SELECT f.id AS field_id, f.name AS field_name, f.data_type, f.auto_generated, f.removable, f.default_value, f.properties" +
-                    " FROM fields f WHERE f.table_id = ?::uuid";
-    /**
-     * Query to retrieve field labels.
-     */
-    public static final String FIELD_LABELS_QUERY =
-            "SELECT nf.component_id AS field_id, nf.label_text AS field_label " +
-                    "FROM nls_labels nf WHERE nf.language_code = ? AND nf.label_type = 'LABEL' AND nf.component_id IN (%s)";
+            "SELECT f.id AS field_id, f.name AS field_name, f.data_type, f.auto_generated, f.removable, f.default_value, f.properties, l.label_text" +
+                    " FROM fields f, nls_labels l WHERE f.table_id = ?::uuid and f.id = l.component_id and l.label_type='LABEL' and l.language_code= ?";
+
     public static final String ALL_TABLES_QUERY =
                             "SELECT id, logical_name, type FROM tables";
 
@@ -163,26 +158,12 @@ public class TableRepository {
         String tablePluralLabel = Optional.ofNullable((String) labelRow.get("table_plural_label")).orElse(tableLabel + "s");
 
         // 3) Query fields
-        List<Map<String, Object>> fieldRows = jdbcTemplate.queryForList(TableRepository.FIELDS_QUERY, tableId);
-        List<UUID> fieldIds = fieldRows.stream()
-                .map(row -> (UUID) row.get("field_id"))
-                .toList();
-
-        // 4) Query field labels
-        String inClause = fieldIds.stream().map(id -> "'" + id + "'").collect(Collectors.joining(", "));
-        String fieldLabelsQuery = String.format(TableRepository.FIELD_LABELS_QUERY, inClause);
-        Map<UUID, String> fieldLabels = jdbcTemplate.query(fieldLabelsQuery, new Object[]{TableRepository.DEFAULT_LANGUAGE}, rs -> {
-            Map<UUID, String> labels = new HashMap<>();
-            while (rs.next()) {
-                labels.put((UUID) rs.getObject("field_id"), rs.getString("field_label"));
-            }
-            return labels;
-        });
+        List<Map<String, Object>> fieldRows = jdbcTemplate.queryForList(TableRepository.FIELDS_QUERY, tableId, TableRepository.DEFAULT_LANGUAGE);
 
         List<ColumnMetaData> columns = fieldRows.stream().map(row -> {
             String fieldName = (String) row.get("field_name");
             UUID fieldId = (UUID) row.get("field_id");
-            String fieldLabel = fieldLabels.getOrDefault(fieldId, fieldName);
+            String fieldLabel = (String) row.get("label_text");
 
             int rawDataType = (int) row.get("data_type");
             Domain domain = Domain.fromCode(rawDataType);
