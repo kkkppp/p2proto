@@ -15,12 +15,13 @@ public class HomeController {
             String username = principal.getName();
             model.addAttribute("username", username);
         }
-        return "index";  // Maps to index.jsp
+        // Forward the request to React's entry point which is now served as a static resource.
+        return "forward:/index.html";
     }
 
     @GetMapping("/ajax/sidebar")
     public String loadSidebar() {
-        return "includes/sidebar"; // Resolves to /WEB-INF/views/includes/sidebar.jsp
+        // If this sidebar is still needed by React, adjust its implementation appropriately.
+        return "includes/sidebar"; // This still assumes a JSP view; update if not needed.
     }
-
 }

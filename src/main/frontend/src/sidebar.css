@@ -1,0 +1,113 @@
+.sidebar {
+    width: 250px;
+    background-color: var(--keycloak-primary);
+    display: flex;
+    flex-direction: column;
+    padding-top: 20px;
+    position: fixed;
+    height: 100%;
+    overflow: auto;
+}
+
+/* Sidebar Heading */
+.sidebar h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 1.5em;
+    color: var(--keycloak-text);
+}
+
+/* Sidebar Menu Styles */
+.sidebar ul {
+    list-style-type: none;
+}
+
+.sidebar ul li {
+    position: relative;
+}
+
+/* Top-Level Menu Items */
+.sidebar ul li > a {
+    display: block;
+    padding: 15px 20px;
+    color: var(--keycloak-text);
+    text-decoration: none;
+    transition: background-color 0.3s;
+    cursor: pointer;
+}
+
+.sidebar ul li > a:hover,
+.sidebar ul li > a.active-link {
+    background-color: var(--keycloak-hover);
+}
+
+/* Submenu Container (hidden by default) */
+.sidebar ul li ul {
+    list-style-type: none;
+    display: none;
+    background-color: #0056b3;
+}
+
+/* Submenu Items */
+.sidebar ul li ul li a {
+    padding-left: 40px;
+    background-color: #0056b3;
+    color: var(--keycloak-text);
+    text-decoration: none;
+    transition: background-color 0.3s;
+    cursor: pointer;
+}
+
+.sidebar ul li ul li a:hover,
+.sidebar ul li ul li a.active-link {
+    background-color: var(--keycloak-hover);
+}
+
+/* Show Submenu when Parent has 'open' Class */
+.sidebar ul li.open > ul {
+    display: block;
+}
+
+
+/* Submenu Toggle Indicator */
+.sidebar ul li > a.has-submenu::after {
+    content: "\25b6";
+    float: right;
+    transition: transform 0.3s;
+}
+.sidebar ul li.open > a.has-submenu::after {
+    transform: rotate(90deg);  /* Down-pointing arrow */
+}
+
+.logout-container {
+    margin-top: auto; /* Pushes logout to the bottom */
+    padding: 20px;
+    color: var(--keycloak-text);
+}
+
+.logout-link {
+    display: block;
+    text-align: center;
+    color: red;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.logout-link:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Overrides for Sidebar */
+@media (max-width: 480px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+    .sidebar ul li > a {
+        padding: 10px;
+    }
+    .sidebar ul li ul li a {
+        padding-left: 30px;
+    }
+}

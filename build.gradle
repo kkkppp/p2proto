@@ -101,8 +101,21 @@ dependencies {
     }
 }
 
+task buildReact(type: Exec) {
+    workingDir 'src/main/frontend'
+    commandLine 'npm', 'run', 'build'
+
+    inputs.dir file('src/main/frontend')
+
+    outputs.dir file('src/main/frontend/dist')
+}
 war {
-    archiveFileName = 'p2proto.war'  // Set the WAR file name here
+    dependsOn buildReact
+    archiveFileName = 'p2proto.war'
+    // Copy all files from the React build output into the "static" folder in the WAR.
+    from('src/main/frontend/dist') {
+        into 'WEB-INF/classes/static'
+    }
 }
 
 test {

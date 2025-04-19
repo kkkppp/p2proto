@@ -1,0 +1,132 @@
+/* global.css */
+
+/* Reset default browser styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Keycloak Color Scheme Variables */
+:root {
+    --keycloak-primary: #007bff;        /* Blue */
+    --keycloak-secondary: #6c757d;      /* Gray */
+    --keycloak-background: #f8f9fa;       /* Light Gray */
+    --keycloak-text: #ffffff;           /* White */
+    --keycloak-hover: #0056b3;          /* Darker Blue */
+    --keycloak-content-bg: #ffffff;     /* White for content area */
+    --keycloak-content-text: #212529;    /* Dark text */
+    --keycloak-active-link: #0056b3;      /* Active link color */
+    --keycloak-error: #dc3545;          /* Red for errors */
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-right: 10px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.btn-primary {
+    background-color: var(--keycloak-primary);
+    color: var(--keycloak-text);
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #0069d9; /* Darker shade for hover */
+}
+
+.btn-secondary {
+    background-color: var(--keycloak-secondary);
+    color: var(--keycloak-text);
+    border: none;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268; /* Darker shade for hover */
+}
+
+.btn-danger {
+    background-color: var(--keycloak-error);
+    color: var(--keycloak-text);
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #c82333; /* Darker shade for hover */
+}
+
+/* Optional: Add box-shadow on hover for depth */
+.btn:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Users Table Styles */
+.user-table {
+    width: 100%;
+    border-collapse: separate; /* Changed from collapse to separate for spacing */
+    border-spacing: 0 10px; /* Adds 10px vertical spacing between rows */
+    margin-bottom: 20px;
+    background-color: var(--keycloak-content-bg); /* Ensures consistent background */
+}
+
+.user-table th, .user-table td {
+    border: 1px solid #dee2e6;
+    padding: 5px 5px; /* Increased padding */
+    text-align: left;
+    background-color: #fff;
+    vertical-align: middle; /* Centers content vertically */
+}
+
+/* Table Header */
+.user-table th {
+    background-color: var(--keycloak-secondary);
+    color: var(--keycloak-text);
+}
+
+/* Zebra Striping */
+.user-table tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+.user-table tbody tr:nth-child(even) {
+    background-color: #ffffff;
+}
+
+/* Hover Effect */
+.user-table tbody tr:hover {
+    background-color: #e9ecef;
+}
+
+/* Body Styling */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    background-color: var(--keycloak-background);
+    color: var(--keycloak-content-text);
+    margin: 0;
+}
+
+/* Main Content Area */
+.main-content {
+    margin-left: 250px;                /* Matches the sidebar width */
+    padding: 20px;
+    width: calc(100% - 250px);
+    overflow: auto;
+    height: 100vh;
+}
+
+/* Responsive Overrides for Main Content */
+@media (max-width: 480px) {
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+}

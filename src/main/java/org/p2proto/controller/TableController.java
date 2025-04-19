@@ -31,12 +31,13 @@ public class TableController {
         this.tableRepository = tableRepository;
         this.request = request;
     }
+
     /**
      * Prepares the model attributes required for displaying the table view.
      *
-     * @param tableName The name of the table.
+     * @param tableName      The name of the table.
      * @param fieldsToRender Optional list of fields to render.
-     * @param model The Spring Model object.
+     * @param model          The Spring Model object.
      */
     private void prepareTableViewModel(String tableName, List<String> fieldsToRender, Model model) {
         // Retrieve the TableMetadata for the given table name
@@ -66,26 +67,71 @@ public class TableController {
         model.addAttribute("tableLabelPlural", tableMetadata.getTablePluralLabel());
     }
 
+    private Map<String, Object> buildTableData(String tableName, List<String> fieldsToRender) {
+        // Retrieve the TableMetadata for the given table name
+        UUID tableID = tableRepository.findAll().get(tableName);
+        TableMetadata tableMetadata = tableRepository.findByID(tableID);
+
+        // Extract all column names from the metadata
+        List<String> allColumns = tableMetadata.getColumns().stream()
+                .map(ColumnMetaData::getName)
+                .collect(Collectors.toList());
+
+        // Retrieve all rows from the CRUD repository
+        TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
+        List<Map<String, Object>> records = repo.findAll();
+
+        // Determine which fields to render: if none provided, render all columns
+        List<String> fieldsToShow = (fieldsToRender == null || fieldsToRender.isEmpty())
+                ? allColumns : fieldsToRender;
+
+        // Build a map of column labels (keyed by column name)
+        Map<String, String> columnLabels = tableMetadata.getColumns().stream()
+                .collect(Collectors.toMap(ColumnMetaData::getName, ColumnMetaData::getLabel));
+
+
+        Map<String, String> cellFormatters = tableMetadata.getColumns().stream()
+                .filter(col -> {
+                    String t = col.getDomain().getInternalName();              // e.g. "TIMESTAMP" or "DATE"
+                    return "DATETIME".equalsIgnoreCase(t) || "DATE".equalsIgnoreCase(t);
+                })
+                .collect(Collectors.toMap(
+                        ColumnMetaData::getName,
+                        col -> "date"                          // frontend will interpret "date" →  new Date(ms).toLocaleString()
+                ));
+        // Prepare the data map to send to the React component
+        Map<String, Object> data = new HashMap<>();
+        data.put("allFields", allColumns);  // array of all column names
+        data.put("fieldsToRender", fieldsToShow);  // array of fields to display
+        data.put("columnLabels", columnLabels);
+        data.put("records", records);
+        data.put("tableName", tableName);
+        data.put("tableLabel", tableMetadata.getTableLabel());
+        data.put("tableLabelPlural", tableMetadata.getTablePluralLabel());
+        data.put("contextPath", request.getContextPath());
+        data.put("cellFormatters", cellFormatters);
+        return data;
+    }
+
     /**
      * Displays the list of records for a given table.
      */
     @GetMapping("/{tableName}")
-    public String listRecords(
+    public ResponseEntity<Map<String, Object>> listRecords(
             @PathVariable("tableName") String tableName,
-            @RequestParam(name = "fields", required = false) List<String> fieldsToRender,
-            Model model
+            @RequestParam(name = "fields", required = false) List<String> fieldsToRender
     ) {
         if (fieldsToRender == null || fieldsToRender.isEmpty()) {
             fieldsToRender = applyTableView(tableName);
         }
-        prepareTableViewModel(tableName, fieldsToRender, model);
-        return "tableView";
+        Map<String, Object> data = buildTableData(tableName, fieldsToRender);
+        return ResponseEntity.ok(data);
     }
 
     private List<String> applyTableView(String tableName) {
         // TODO actual implementation
         if ("users".equals(tableName)) {
-            return Arrays.asList("username","email","first_name","last_name");
+            return Arrays.asList("username", "email", "first_name", "last_name");
         }
         return null;
     }
@@ -258,6 +304,7 @@ public class TableController {
             }
         }
     }
+
     /**
      * Validates the RecordForm. Customize this method based on your validation needs.
      */

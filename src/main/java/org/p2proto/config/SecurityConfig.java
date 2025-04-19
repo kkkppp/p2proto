@@ -96,10 +96,15 @@ public class SecurityConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Map all /resources/** URLs to the /resources/ directory in webapp
         registry.addResourceHandler("/resources/**")
-                .addResourceLocations("/resources/")
-                .setCachePeriod(3600) // Optional: cache for 1 hour
-                .resourceChain(true);
+                .addResourceLocations("/resources/");
+                //.setCachePeriod(3600) // Optional: cache for 1 hour
+                //.resourceChain(true);
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/");
+                //.setCachePeriod(3600) // Optional: cache for 1 hour
+                //.resourceChain(true);
     }
+
     @Bean
     public MessageSource messageSource() {
         ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
