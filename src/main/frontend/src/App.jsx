@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import TablePage from './TablePage';
+import TablePage from './table/TablePage';
 
 const contextPath = '/p2proto';
 
