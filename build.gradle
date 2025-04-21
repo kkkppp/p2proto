@@ -103,7 +103,10 @@ dependencies {
 
 task buildReact(type: Exec) {
     workingDir 'src/main/frontend'
-    commandLine 'npm', 'run', 'build'
+
+    def npmBin = System.getProperty('os.name')
+            .toLowerCase().contains('windows') ? 'npm.cmd' : 'npm'
+    commandLine npmBin, 'run', 'build'
 
     inputs.dir file('src/main/frontend')
 
