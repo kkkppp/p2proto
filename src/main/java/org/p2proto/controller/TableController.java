@@ -32,41 +32,6 @@ public class TableController {
         this.request = request;
     }
 
-    /**
-     * Prepares the model attributes required for displaying the table view.
-     *
-     * @param tableName      The name of the table.
-     * @param fieldsToRender Optional list of fields to render.
-     * @param model          The Spring Model object.
-     */
-    private void prepareTableViewModel(String tableName, List<String> fieldsToRender, Model model) {
-        // Retrieve the TableMetadata for the given table name
-        UUID tableID = tableRepository.findAll().get(tableName);
-        TableMetadata tableMetadata = tableRepository.findByID(tableID);
-
-        // Extract column information
-        List<String> allColumns = tableMetadata.getColumns().stream()
-                .map(org.p2proto.dto.ColumnMetaData::getName)
-                .collect(Collectors.toList());
-
-        // Retrieve all rows from the CRUD repository
-        TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
-        List<Map<String, Object>> records = repo.findAll();
-
-        // Determine which fields to render
-        List<String> fieldsToShow = (fieldsToRender == null || fieldsToRender.isEmpty()) ? allColumns : fieldsToRender;
-
-        // Populate model attributes
-        model.addAttribute("allFields", String.join(",", allColumns));
-        model.addAttribute("fieldsToRender", String.join(",", fieldsToShow));
-        model.addAttribute("columnLabels", tableMetadata.getColumns().stream()
-                .collect(Collectors.toMap(org.p2proto.dto.ColumnMetaData::getName, org.p2proto.dto.ColumnMetaData::getLabel)));
-        model.addAttribute("records", records);
-        model.addAttribute("tableName", tableName);
-        model.addAttribute("tableLabel", tableMetadata.getTableLabel());
-        model.addAttribute("tableLabelPlural", tableMetadata.getTablePluralLabel());
-    }
-
     private Map<String, Object> buildTableData(String tableName, List<String> fieldsToRender) {
         // Retrieve the TableMetadata for the given table name
         UUID tableID = tableRepository.findAll().get(tableName);
@@ -136,24 +101,71 @@ public class TableController {
         return null;
     }
 
-    @GetMapping("/{tableName}/create")
-    public String createRecordForm(@PathVariable("tableName") String tableName, Model model) {
-        // Reuse the same code, but pass null to indicate "no existing record"
-        prepareRecordForm(tableName, null, model);
-        model.addAttribute("mode", "create");
-        return "createRecordContent"; // or a unified form view if you prefer
+    @GetMapping(
+            value = "/{tableName}/create",
+            produces = "application/json"
+    )
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> createRecordData(
+            @PathVariable String tableName) {
+
+        Map<String, Object> payload = prepareRecordPayload(tableName, null);
+        payload.put("mode", "create");
+        return ResponseEntity.ok(payload);
     }
 
-    @GetMapping("/{tableName}/edit/{id}")
-    public String editRecordForm(
-            @PathVariable("tableName") String tableName,
-            @PathVariable("id") String id,
-            Model model
-    ) {
-        // Reuse the code and populate fields from the DB
-        prepareRecordForm(tableName, id, model);
-        model.addAttribute("mode", "edit");
-        return "createRecordContent"; // or reuse "createRecordContent" if it’s the same view
+    @GetMapping(
+            value = "/{tableName}/{id}/edit",
+            produces = "application/json"
+    )
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> editRecordData(
+            @PathVariable String tableName,
+            @PathVariable String id) {
+
+        Map<String, Object> payload = prepareRecordPayload(tableName, id);
+        payload.put("mode", "edit");
+        payload.put("recordId", id);
+        return ResponseEntity.ok(payload);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Helper that builds exactly what the React form needs              */
+    /* ------------------------------------------------------------------ */
+
+    private Map<String, Object> prepareRecordPayload(String tableName,
+                                                     String recordId) {
+
+        UUID tableID = tableRepository.findAll().get(tableName);
+        TableMetadata meta = tableRepository.findByID(tableID);
+
+        // Build FormField list
+        List<FormField> fields = meta.getColumns().stream()
+                .map(ColumnMetaData::toFormField)
+                .collect(Collectors.toList());
+
+        // Populate values when editing
+        if (recordId != null) {
+            TableMetadataCrudRepository repo =
+                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), meta, "id");
+
+            Map<String, Object> db = repo.findById(Integer.parseInt(recordId));
+            if (db != null) {
+                fields.forEach(f -> {
+                    Object v = db.get(f.getName());
+                    f.setValue(v == null ? "" : v.toString());
+                });
+            }
+        }
+
+        RecordForm recordForm = new RecordForm(fields);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("tableName", tableName);
+        payload.put("tableLabel", meta.getTableLabel());
+        payload.put("record", recordForm);
+
+        return payload;
     }
 
     /**

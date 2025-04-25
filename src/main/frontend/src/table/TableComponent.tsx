@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 // Optionally install date-fns for custom formats:
 // import { format } from 'date-fns';
 
@@ -39,17 +40,9 @@ export default function TableComponent({
     return (
         <div>
             <h2>{tableLabelPlural}</h2>
-            <a
-                href={`${contextPath}/table/${tableName}/create`}
-                data-url={`${contextPath}/table/${tableName}/create`}
-                className="btn btn-primary"
-                onClick={(e) => {
-                    e.preventDefault();
-                    loadContent(e, `${contextPath}/table/${tableName}/create`);
-                }}
-            >
+            <Link to={`/table/${tableName}/create`} className="btn btn-primary">
                 Create New {tableLabel}
-            </a>
+            </Link>
             <br />
             <br />
             <table className="user-table">
@@ -68,20 +61,12 @@ export default function TableComponent({
                             <td key={i}>{formatCell(field, record[field])}</td>
                         ))}
                         <td>
-                            <a
-                                href={`${contextPath}/table/${tableName}/edit/${record.id}`}
-                                data-url={`${contextPath}/table/${tableName}/edit/${record.id}`}
+                            <Link
+                                to={`/table/${tableName}/${record.id}/edit`}
                                 className="btn btn-secondary"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    loadContent(
-                                        e,
-                                        `${contextPath}/table/${tableName}/edit/${record.id}`
-                                    );
-                                }}
                             >
                                 Edit
-                            </a>{' '}
+                            </Link>
                             <a
                                 href="#"
                                 className="btn btn-danger"

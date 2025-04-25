@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TablePage from './table/TablePage';
+import TableFormLoader from './table/TableFormLoader';
 
 const contextPath = '/p2proto';
 
@@ -44,6 +45,8 @@ function App() {
             <div style={{ flex: 1, minWidth: 0, padding: '20px', overflow: 'auto' }}>
                 <Routes>
                     <Route path="/table/:tableName" element={<TablePage />} />
+                    <Route path="/table/:tableName/create" element={<TableFormLoader />} />
+                    <Route path="/table/:tableName/:recordId/edit" element={<TableFormLoader />} />
                     <Route
                         path="/"
                         element={
