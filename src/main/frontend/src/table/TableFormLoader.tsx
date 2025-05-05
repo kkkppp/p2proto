@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { BASE_PATH } from '@/lib/basePath';
 import TableForm from './TableForm';
 
 export default function TableFormLoader() {
@@ -8,8 +9,8 @@ export default function TableFormLoader() {
 
     useEffect(() => {
         const url = recordId
-            ? `/table/${tableName}/${recordId}/edit`
-            : `/table/${tableName}/create`;
+            ? `${BASE_PATH}/table/${tableName}/${recordId}/edit`
+            : `${BASE_PATH}/table/${tableName}/create`;
         fetch(url)
             .then(r => r.json())
             .then(setPayload)

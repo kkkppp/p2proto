@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
+import { BASE_PATH } from '@/lib/basePath';
 
 /**
  * TableForm – renders an empty form for create or a filled form for edit,
@@ -26,6 +27,9 @@ export default function TableForm({
     const [confirm, setConfirm] = useState({});
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    useEffect(() => {
+      setFields(record.fields.map((f) => ({ ...f })));
+    }, [record]);
 
     /* ---------------------------- Helpers ---------------------------- */
     const handleChange = (idx, newValue) => {
@@ -68,8 +72,8 @@ export default function TableForm({
         // POST back to the *same* MVC controller path that rendered the form
         const url =
             mode === "create"
-                ? `/table/${tableName}/create` // e.g. /table/user/create
-                : `/table/${tableName}/${recordId}/edit`; // e.g. /table/user/42/edit
+                ? `${BASE_PATH}/table/${tableName}/create` // e.g. /table/user/create
+                : `${BASE_PATH}/table/${tableName}/${recordId}/edit`; // e.g. /table/user/42/edit
 
         try {
             setLoading(true);
