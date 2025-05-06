@@ -211,15 +211,30 @@ public class TableController {
         model.addAttribute("record", recordForm);
     }
 
-    /**
-     * Handles the form submission to save a new record.
-     */
-    @PostMapping("/{tableName}/save")
+    @PostMapping(value = "/{tableName}/create", consumes = "application/json")
+    public ResponseEntity<Map<String, String>> createRecord(
+            @PathVariable String tableName,
+            @RequestBody RecordForm record,        // JSON → RecordForm (needs @JsonCreator in RecordForm)
+            BindingResult result) {
+
+        return saveRecord(tableName, record, result, null);    // delegate
+    }
+
+    @PostMapping(value = "/{tableName}/{id}/edit", consumes = "application/json")
+    public ResponseEntity<Map<String, String>> updateRecord(
+            @PathVariable String tableName,
+            @PathVariable String id,
+            @RequestBody RecordForm record,
+            BindingResult result) {
+
+        return saveRecord(tableName, record, result, id);      // delegate
+    }
+
     public ResponseEntity<Map<String, String>> saveRecord(
             @PathVariable("tableName") String tableName,
             @ModelAttribute RecordForm record,
             BindingResult result,
-            Model model) {
+            String id) {
 
         Map<String, String> response = new HashMap<>();
 
@@ -247,10 +262,10 @@ public class TableController {
 
             // Convert RecordForm to a Map<String, Object> for saving
             Map<String, Object> recordData = record.getFields().stream()
-                    .collect(Collectors.toMap(FormField::getName, FormField::getValue));
+                    .collect(Collectors.toMap(FormField::getName, f -> Objects.requireNonNullElse(f.getValue(), "") ));
 
             // Save the record (assuming 'id' is auto-generated
-            repo.save(recordData);
+            repo.save(id, recordData);
         } catch (Exception e) {
             // Handle exceptions (e.g., log the error)
             e.printStackTrace();

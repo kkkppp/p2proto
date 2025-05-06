@@ -270,8 +270,7 @@ public class TableMetadataCrudRepository {
         return jdbcTemplate.update(sql, pkValue);
     }
 
-    public void save(Map<String, Object> recordData) {
-        String idValue = recordData.get("id").toString();
+    public void save(String idValue, Map<String, Object> recordData) {
         Integer id = null;
         if (! (idValue == null || idValue.isEmpty())) {
             id = Integer.valueOf(idValue);

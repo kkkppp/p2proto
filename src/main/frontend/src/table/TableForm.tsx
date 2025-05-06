@@ -1,20 +1,31 @@
-import React, { useState, useEffect } from "react";
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import { motion } from "framer-motion";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+    Button,
+    Card,
+    CardContent,
+    Grid,
+    TextField,
+    Checkbox,
+    FormControlLabel,
+    RadioGroup,
+    Radio,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    Typography,
+} from '@mui/material';
 import { BASE_PATH } from '@/lib/basePath';
+import { getCsrfToken } from '@/lib/csrf';
 
 /**
- * TableForm – renders an empty form for create or a filled form for edit,
- * and POSTs back to the SAME path that rendered it (Spring MVC style).
+ * TableForm – renders an empty form for create or a filled form for edit using MUI components.
  */
 export default function TableForm({
-                                      mode = "create", // "create" | "edit" (injected via <Route>)
-                                      tableLabel = "Record", // optional human label
-                                      csrfToken,
-                                      // If you render <TableForm tableName="x" /> manually you can still pass tableName.
+                                      mode = 'create',
+                                      tableLabel = 'Record',
                                       tableName: tableNameProp,
                                       record = { fields: [] },
                                   }) {
@@ -22,31 +33,36 @@ export default function TableForm({
     const { tableName: urlTableName, recordId } = useParams();
     const tableName = tableNameProp || urlTableName;
 
-    /* ----------------------------- State ----------------------------- */
+    /* ------------------------------------------------------------------ */
+    /*                               State                                */
+    /* ------------------------------------------------------------------ */
     const [fields, setFields] = useState(() => record.fields.map((f) => ({ ...f })));
     const [confirm, setConfirm] = useState({});
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+
+    // when new record arrives (async fetch) sync local state
     useEffect(() => {
-      setFields(record.fields.map((f) => ({ ...f })));
+        setFields(record.fields.map((f) => ({ ...f })));
     }, [record]);
 
-    /* ---------------------------- Helpers ---------------------------- */
-    const handleChange = (idx, newValue) => {
+    /* ------------------------------------------------------------------ */
+    /*                               Helpers                              */
+    /* ------------------------------------------------------------------ */
+    const handleChange = (idx, newValue) =>
         setFields((prev) => {
             const next = [...prev];
             next[idx] = { ...next[idx], value: newValue };
             return next;
         });
-    };
 
     const handleConfirmChange = (name, value) => setConfirm((c) => ({ ...c, [name]: value }));
 
     const validatePasswords = () => {
         const invalid = {};
         fields.forEach((f) => {
-            if (f.type === "PASSWORD" && confirm[f.name] !== (f.value ?? "")) {
-                invalid[f.name] = ["Passwords do not match."];
+            if (f.type === 'PASSWORD' && confirm[f.name] !== (f.value ?? '')) {
+                invalid[f.name] = ['Passwords do not match.'];
             }
         });
         setErrors(invalid);
@@ -64,71 +80,79 @@ export default function TableForm({
         })),
     });
 
-    /* --------------------------- Submission -------------------------- */
+    /* ------------------------------------------------------------------ */
+    /*                              Submit                                */
+    /* ------------------------------------------------------------------ */
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validatePasswords()) return;
 
-        // POST back to the *same* MVC controller path that rendered the form
-        const url =
-            mode === "create"
-                ? `${BASE_PATH}/table/${tableName}/create` // e.g. /table/user/create
-                : `${BASE_PATH}/table/${tableName}/${recordId}/edit`; // e.g. /table/user/42/edit
+        const token = getCsrfToken();
 
+        const url =
+            mode === 'create'
+                ? `${BASE_PATH}/table/${tableName}/create`
+                : `${BASE_PATH}/table/${tableName}/${recordId}/edit`;
         try {
             setLoading(true);
             const res = await fetch(url, {
-                method: "POST", // same path, different HTTP method from the GET that delivered HTML/JSON
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": csrfToken,
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': token ?? ''
                 },
+                credentials: 'include',
                 body: JSON.stringify(buildPayload()),
             });
-
             if (!res.ok) throw new Error(`Server responded ${res.status}`);
-            navigate(`/table/${tableName}`); // go back to list
+            navigate(`/table/${tableName}`);
         } catch (err) {
             console.error(err);
-            alert("Could not save. Check console for details.");
+            alert('Could not save.');
         } finally {
             setLoading(false);
         }
     };
 
-    /* --------------------------- UI helpers -------------------------- */
-    const renderFieldInput = (field, idx) => {
+    /* ------------------------------------------------------------------ */
+    /*                             Renderers                              */
+    /* ------------------------------------------------------------------ */
+    const renderInput = (field, idx) => {
         if (field.autoGenerated) {
-            return mode === "edit" ? (
-                <input
+            return (
+                <TextField
+                    fullWidth
                     id={field.name}
-                    className="form-control bg-gray-100 cursor-not-allowed"
-                    readOnly
+                    label={field.label}
                     value={field.value}
+                    InputProps={{ readOnly: true }}
+                    disabled
                 />
-            ) : null; // hidden on create
+            );
         }
 
         switch (field.type) {
-            case "PASSWORD": {
-                const mask = mode === "edit" ? "********" : "";
+            case 'PASSWORD': {
+                const mask = mode === 'edit' ? '********' : '';
                 return (
                     <>
-                        <input
-                            type="password"
+                        <TextField
+                            fullWidth
                             id={field.name}
-                            className="form-control"
+                            label={field.label}
+                            type="password"
                             required={field.required}
                             value={field.value ?? mask}
                             onChange={(e) => handleChange(idx, e.target.value)}
+                            error={Boolean(errors[field.name])}
+                            helperText={errors[field.name]?.[0]}
                         />
-                        <label htmlFor={`${field.name}Confirm`} className="mt-4 block text-sm font-medium text-muted-foreground">
-                            Confirm {field.label}
-                        </label>
-                        <input
-                            type="password"
+                        <TextField
+                            sx={{ mt: 2 }}
+                            fullWidth
                             id={`${field.name}Confirm`}
-                            className="form-control"
+                            label={`Confirm ${field.label}`}
+                            type="password"
                             required={field.required}
                             value={confirm[field.name] ?? mask}
                             onChange={(e) => handleConfirmChange(field.name, e.target.value)}
@@ -137,134 +161,139 @@ export default function TableForm({
                 );
             }
 
-            case "EMAIL":
+            case 'EMAIL':
                 return (
-                    <input
-                        type="email"
+                    <TextField
+                        fullWidth
                         id={field.name}
-                        className="form-control"
+                        label={field.label}
+                        type="email"
                         required={field.required}
-                        value={field.value ?? ""}
+                        value={field.value ?? ''}
                         onChange={(e) => handleChange(idx, e.target.value)}
                     />
                 );
 
-            case "SELECT":
+            case 'SELECT':
                 return (
-                    <select
-                        id={field.name}
-                        className="form-control"
-                        required={field.required}
-                        value={field.value ?? ""}
-                        onChange={(e) => handleChange(idx, e.target.value)}
-                    >
-                        <option value="">-- Select --</option>
-                        {field.options?.map((opt) => (
-                            <option key={opt} value={opt}>
-                                {opt}
-                            </option>
-                        ))}
-                    </select>
+                    <FormControl fullWidth required={field.required}>
+                        <InputLabel id={`${field.name}-label`}>{field.label}</InputLabel>
+                        <Select
+                            labelId={`${field.name}-label`}
+                            id={field.name}
+                            value={field.value ?? ''}
+                            label={field.label}
+                            onChange={(e) => handleChange(idx, e.target.value)}
+                        >
+                            <MenuItem value="">
+                                <em>None</em>
+                            </MenuItem>
+                            {field.options?.map((opt) => (
+                                <MenuItem key={opt} value={opt}>
+                                    {opt}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                 );
 
-            case "RADIO":
+            case 'RADIO':
                 return (
-                    <div className="flex flex-wrap gap-4">
-                        {field.options?.map((opt) => (
-                            <label key={opt} className="flex items-center gap-1">
-                                <input
-                                    type="radio"
-                                    name={field.name}
-                                    value={opt}
-                                    checked={field.value === opt}
-                                    required={field.required}
-                                    onChange={(e) => handleChange(idx, e.target.value)}
-                                />
-                                {opt}
-                            </label>
-                        ))}
-                    </div>
+                    <FormControl component="fieldset">
+                        <Typography sx={{ mb: 1 }}>{field.label}</Typography>
+                        <RadioGroup
+                            row
+                            name={field.name}
+                            value={field.value ?? ''}
+                            onChange={(e) => handleChange(idx, e.target.value)}
+                        >
+                            {field.options?.map((opt) => (
+                                <FormControlLabel key={opt} value={opt} control={<Radio />} label={opt} />
+                            ))}
+                        </RadioGroup>
+                    </FormControl>
                 );
 
-            case "CHECKBOX":
+            case 'CHECKBOX':
                 return (
-                    <input
-                        type="checkbox"
-                        id={field.name}
-                        checked={Boolean(field.value)}
-                        required={field.required}
-                        onChange={(e) => handleChange(idx, e.target.checked)}
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={Boolean(field.value)}
+                                onChange={(e) => handleChange(idx, e.target.checked)}
+                            />
+                        }
+                        label={field.label}
                     />
                 );
 
             default:
                 return (
-                    <input
+                    <TextField
+                        fullWidth
                         id={field.name}
-                        className="form-control"
+                        label={field.label}
                         required={field.required}
-                        value={field.value ?? ""}
+                        value={field.value ?? ''}
                         onChange={(e) => handleChange(idx, e.target.value)}
                     />
                 );
         }
     };
 
-    /* ------------------------------ Render ------------------------------ */
+    /* ------------------------------------------------------------------ */
+    /*                                UI                                  */
+    /* ------------------------------------------------------------------ */
     return (
-        <Card className="mx-auto w-full max-w-2xl shadow-xl rounded-2xl p-6 relative">
+        <Card sx={{ maxWidth: 720, mx: 'auto', mt: 3, position: 'relative' }}>
             <CardContent>
-                <h2 className="text-2xl font-semibold mb-6">
-                    {mode === "create" ? `Create New ${tableLabel}` : `Edit ${tableLabel}`}
-                </h2>
+                <Typography variant="h5" gutterBottom>
+                    {mode === 'create' ? `Create New ${tableLabel}` : `Edit ${tableLabel}`}
+                </Typography>
 
-                <form className="space-y-6" aria-labelledby="createUserForm" onSubmit={handleSubmit}>
-                    {fields.map((field, idx) => (
-                        <div key={field.name} className="form-group">
-                            {/* label (skip for hidden autogenerated on create) */}
-                            {!field.autoGenerated || mode === "edit" ? (
-                                <label htmlFor={field.name} className="mb-1 block text-sm font-medium text-muted-foreground">
-                                    {field.label}:
-                                </label>
-                            ) : null}
+                <form onSubmit={handleSubmit} noValidate>
+                    <Grid container spacing={2}>
+                        {fields.map((field, idx) => (
+                            <Grid item xs={12} sm={6} key={field.name}>
+                                {renderInput(field, idx)}
+                            </Grid>
+                        ))}
+                    </Grid>
 
-                            {/* input */}
-                            {renderFieldInput(field, idx)}
-
-                            {/* errors */}
-                            {(errors[field.name] || field.errors)?.length ? (
-                                <div className="text-destructive mt-2 space-y-1">
-                                    {(errors[field.name] || field.errors).map((e) => (
-                                        <p key={e}>{e}</p>
-                                    ))}
-                                </div>
-                            ) : null}
-                        </div>
-                    ))}
-
-                    {/* actions */}
-                    <div className="flex items-center gap-4 pt-4">
-                        <Button type="submit" disabled={loading} className="shadow-sm">
-                            Finish
-                        </Button>
-                        <Button type="button" variant="secondary" onClick={() => navigate(`/table/${tableName}`)}>
-                            Cancel
-                        </Button>
-                    </div>
+                    <Grid container spacing={2} sx={{ mt: 3 }}>
+                        <Grid item>
+                            <Button type="submit" variant="contained" disabled={loading}>
+                                Finish
+                            </Button>
+                        </Grid>
+                        <Grid item>
+                            <Button variant="outlined" onClick={() => navigate(`/table/${tableName}`)}>
+                                Cancel
+                            </Button>
+                        </Grid>
+                    </Grid>
                 </form>
-
-                {/* loading overlay */}
-                {loading && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur rounded-2xl"
-                    >
-                        <p className="loading animate-pulse text-lg font-medium">Submitting...</p>
-                    </motion.div>
-                )}
             </CardContent>
+
+            {loading && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backdropFilter: 'blur(2px)',
+                        background: 'rgba(255,255,255,0.6)',
+                        borderRadius: 8,
+                    }}
+                >
+                    <Typography>Submitting…</Typography>
+                </motion.div>
+            )}
         </Card>
     );
 }

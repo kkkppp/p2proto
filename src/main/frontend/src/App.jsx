@@ -14,7 +14,7 @@ function App() {
     useEffect(() => {
         fetch(`${contextPath}/api/menu-data`, {
             // Include credentials if needed:
-            // credentials: 'include',
+            credentials: 'include',
         })
             .then((res) => {
                 if (!res.ok) {
