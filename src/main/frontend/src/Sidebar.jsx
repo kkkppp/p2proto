@@ -1,72 +1,117 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import './sidebar.css';
+import { Link as RouterLink } from 'react-router-dom';
+import {
+    Drawer,
+    List,
+    ListItemButton,
+    ListItemText,
+    Collapse,
+    Toolbar,
+    Typography,
+    Box,
+    Divider,
+    Button,
+    Stack,
+} from '@mui/material';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 
-function Sidebar({ menu = [], activeMenu: initialActiveMenu, currentUser, basePath }) {
-    const { t } = useTranslation(); // initialize the translation function
-    // Use local state to track the active (open) menu.
-    const [activeMenu, setActiveMenu] = useState(initialActiveMenu || null);
+const drawerWidth = 240;
 
-    const handleToggle = (menuTitle) => {
-        // Toggle between the same menu closing and new one opening.
-        setActiveMenu(activeMenu === menuTitle ? null : menuTitle);
+/**
+ * Permanent sidebar that matches the MUI look used elsewhere.
+ *
+ * Props:
+ *  - menu: [{ title, url?, children?: [...] }]
+ *  - activeMenu: string | null
+ *  - currentUser: { fullName }
+ *  - basePath: context path (e.g. "/p2proto")
+ */
+export default function Sidebar({
+                                    menu = [],
+                                    activeMenu: initialActiveMenu,
+                                    currentUser,
+                                    basePath,
+                                }) {
+    const { t } = useTranslation();
+    const [openMenu, setOpenMenu] = useState(initialActiveMenu || null);
+
+    const toggle = (title, hasChildren) => {
+        if (!hasChildren) return;
+        setOpenMenu((prev) => (prev === title ? null : title));
     };
 
     return (
-        <div className="sidebar">
-            <h1>Platform 2</h1>
-            <ul>
-                {menu.map((menuItem) => {
-                    const hasChildren = menuItem.children && menuItem.children.length > 0;
-                    const isOpen = menuItem.title === activeMenu;
-                    const liClass = isOpen ? 'open' : '';
+        <Drawer
+            variant="permanent"
+            sx={{
+                width: drawerWidth,
+                flexShrink: 0,
+                [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+            }}
+        >
+            {/* logo / title */}
+            <Toolbar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+                <Typography variant="h6" noWrap>
+                    Platform 2
+                </Typography>
+            </Toolbar>
 
+            {/* main nav list */}
+            <List>
+                {menu.map((item) => {
+                    const hasChildren = !!item.children?.length;
+                    const isOpen = openMenu === item.title;
                     return (
-                        <li key={menuItem.title} className={liClass}>
-                            <a
-                                href="#"
-                                className={hasChildren ? 'has-submenu' : ''}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    if (hasChildren) {
-                                        handleToggle(menuItem.title);
-                                    }
-                                }}
-                            >
-                                {menuItem.title}
-                            </a>
-                            {hasChildren && isOpen && (
-                                <ul className="subMenu">
-                                    {menuItem.children.map((sub) => (
-                                        <li key={sub.title}>
-                                            <Link to={sub.url} data-url={`${basePath}${sub.url}`}>
-                                                {sub.title}
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
+                        <Box key={item.title}>
+                            <ListItemButton onClick={() => toggle(item.title, hasChildren)}>
+                                <ListItemText primary={item.title} />
+                                {hasChildren ? isOpen ? <ExpandLess /> : <ExpandMore /> : null}
+                            </ListItemButton>
+
+                            {hasChildren && (
+                                <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                                    <List component="div" disablePadding>
+                                        {item.children.map((sub) => (
+                                            <ListItemButton
+                                                key={sub.title}
+                                                component={RouterLink}
+                                                to={sub.url}
+                                                sx={{ pl: 4 }}
+                                            >
+                                                <ListItemText primary={sub.title} />
+                                            </ListItemButton>
+                                        ))}
+                                    </List>
+                                </Collapse>
                             )}
-                        </li>
+                        </Box>
                     );
                 })}
-            </ul>
+            </List>
 
-            {/* Logout Section */}
-            <div className="logout-container">
-                {currentUser && currentUser.fullName && (
-                    <>
-                        {/* Use the resource bundle text with interpolation to insert current user data */}
-                        <span>{t('current.user', { user: currentUser.fullName })}</span>
-                        <br />
-                    </>
+            <Divider sx={{ mt: 'auto' }} />
+
+            {/* footer / logout */}
+            <Box sx={{ p: 2 }}>
+                {currentUser?.fullName && (
+                    <Typography variant="body2" color="text.secondary" mb={1}>
+                        {t('current.user', { user: currentUser.fullName })}
+                    </Typography>
                 )}
-                <a href={`${basePath}/logout`} className="logout-link">
-                    {t('logout')}
-                </a>
-            </div>
-        </div>
+
+                <Stack direction="row" justifyContent="flex-start">
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        component="a"
+                        href={`${basePath}/logout`}
+                    >
+                        {t('logout')}
+                    </Button>
+                </Stack>
+            </Box>
+        </Drawer>
     );
 }
-
-export default Sidebar;
