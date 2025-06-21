@@ -10,7 +10,6 @@ import org.p2proto.repository.table.TableRepository;
 import org.p2proto.service.TableService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -129,10 +128,6 @@ public class TableController {
         return ResponseEntity.ok(payload);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Helper that builds exactly what the React form needs              */
-    /* ------------------------------------------------------------------ */
-
     private Map<String, Object> prepareRecordPayload(String tableName,
                                                      String recordId) {
 
@@ -166,49 +161,6 @@ public class TableController {
         payload.put("record", recordForm);
 
         return payload;
-    }
-
-    /**
-     * A private helper that:
-     * 1) Retrieves the table metadata
-     * 2) Builds a new RecordForm from the column definitions
-     * 3) If recordId is provided, fetches existing data and populates the form fields
-     * 4) Places the resulting RecordForm in the model.
-     */
-    private void prepareRecordForm(String tableName, String recordId, Model model) {
-        // 1. Look up the metadata
-        UUID tableID = tableRepository.findAll().get(tableName);
-        TableMetadata tableMetadata = tableRepository.findByID(tableID);
-
-        // 2. Build the empty (or default) form fields
-        List<FormField> fields = tableMetadata.getColumns().stream()
-                .map(ColumnMetaData::toFormField)
-                .collect(Collectors.toList());
-
-        // Create a RecordForm
-        RecordForm recordForm = new RecordForm(fields);
-
-        // 3. If editing, fetch existing record & populate fields
-        if (recordId != null) {
-            TableMetadataCrudRepository repo =
-                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
-
-            Map<String, Object> recordData = repo.findById(Integer.valueOf(recordId));
-            if (recordData != null) {
-                // Populate each form field from existing DB data
-                for (FormField field : fields) {
-                    Object value = recordData.get(field.getName());
-                    field.setValue(value == null ? "" : value.toString());
-                }
-            }
-
-            model.addAttribute("recordId", recordId);
-        }
-
-        // 4. Populate the model
-        model.addAttribute("tableName", tableName);
-        model.addAttribute("tableLabel", tableMetadata.getTableLabel());
-        model.addAttribute("record", recordForm);
     }
 
     @PostMapping(value = "/{tableName}/create", consumes = "application/json")
