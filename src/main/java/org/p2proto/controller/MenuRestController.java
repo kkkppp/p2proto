@@ -36,8 +36,7 @@ public class MenuRestController {
     }
 
     /**
-     * A small DTO class that you can define inside this file or as a separate file.
-     * It will be returned as JSON to your React client.
+     * A small DTO class. It will be returned as JSON to React client.
      */
     public static class MenuDataResponse {
         private final List<MenuItem> menu;
