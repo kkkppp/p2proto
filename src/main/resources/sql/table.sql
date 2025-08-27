@@ -1,79 +1,80 @@
--- Begin Transaction
 BEGIN;
 
--- Execute the PL/pgSQL DO block
+-- Make sure we're hitting the right tables
+-- SET search_path TO platform;
+
 DO $$
 DECLARE
-    table_comp_id UUID;    -- Variable to hold the 'users' table component ID
-    field_comp_id UUID;    -- Variable to hold each field's component ID
-    rec RECORD;            -- Record variable for looping through fields
+table_comp_id UUID;
+    field_comp_id UUID;
+    rec RECORD;
 BEGIN
-    -- 1. Insert into component for the 'users' table
+    -- 1) users table component
 INSERT INTO components (component_type, status)
 VALUES ('TABLE', 'ACTIVE')
     RETURNING id INTO table_comp_id;
 
--- 2. Insert into table_component with the obtained UUID
+-- 2) table row
 INSERT INTO tables (id, type, logical_name, removable)
 VALUES (table_comp_id, 'USERS', 'users', false);
 
--- 3. Insert labels for the 'users' table
-INSERT INTO nls_labels (component_id, language_code, label_type, label_text)
-VALUES
-    (table_comp_id, 'en', 'LABEL', 'User'),
-    (table_comp_id, 'en', 'PLURAL_LABEL', 'Users'),
-    (table_comp_id, 'es', 'LABEL', 'Usuario'),
-    (table_comp_id, 'es', 'PLURAL_LABEL', 'Usuarios');
+-- 3) set NLS in one statement (no nested jsonb_set)
+UPDATE components
+SET nls_labels = '{
+      "en":{"LABEL":"User","PLURAL_LABEL":"Users"},
+      "es":{"LABEL":"Usuario","PLURAL_LABEL":"Usuarios"}
+    }'::jsonb
+WHERE id = table_comp_id;
 
--- 4. Create and populate a temporary table to hold field information
+-- 4) temp fields
 CREATE TEMP TABLE temp_fields (
         field_order INT,
         field_name TEXT,
-        data_type int,
+        data_type   INT,
         primary_key BOOLEAN,
         auto_generated BOOLEAN,
         label_singular_en TEXT,
         label_singular_es TEXT
     ) ON COMMIT DROP;
 
-    -- Populate the temporary table with field details
-INSERT INTO temp_fields (field_order, field_name, data_type, primary_key, auto_generated, label_singular_en, label_singular_es)
+INSERT INTO temp_fields
+(field_order, field_name, data_type, primary_key, auto_generated, label_singular_en, label_singular_es)
 VALUES
-    (1, 'id', 8, true, true,  'ID', 'ID'),
-    (2, 'uuid', 1, false, true,  'UUID', 'UUID'),
-    (3, 'username', 2, false, false, 'Username', 'Nombre de usuario'),
-    (4, 'email', 2, false, false, 'Email', 'Correo electrónico'),
-    (5, 'first_name', 2, false, false, 'First Name', 'Nombre'),
-    (6, 'last_name', 2, false, false, 'Last Name', 'Apellido'),
-    (7, 'password_hash', 9, false, false, 'Password', 'Hash de contraseña'),
+    (1, 'id',             8, true,  true,  'ID',             'ID'),
+    (2, 'uuid',           1, false, true,  'UUID',           'UUID'),
+    (3, 'username',       2, false, false, 'Username',       'Nombre de usuario'),
+    (4, 'email',          2, false, false, 'Email',          'Correo electrónico'),
+    (5, 'first_name',     2, false, false, 'First Name',     'Nombre'),
+    (6, 'last_name',      2, false, false, 'Last Name',      'Apellido'),
+    (7, 'password_hash',  9, false, false, 'Password',       'Hash de contraseña'),
     (8, 'email_verified', 3, false, false, 'Email Verified', 'Correo verificado'),
-    (9, 'enabled', 3, false, false, 'Enabled', 'Habilitado');
+    (9, 'enabled',        3, false, false, 'Enabled',        'Habilitado');
 
--- 5. Loop through each field and insert into metadata tables
+-- 5) loop fields
 FOR rec IN SELECT * FROM temp_fields ORDER BY field_order LOOP
-           -- a. Insert into component for the field
+           -- a) field component
            INSERT INTO components (component_type, status)
            VALUES ('FIELD', 'ACTIVE')
                RETURNING id INTO field_comp_id;
 
--- b. Insert into field_component
+-- b) field row
 INSERT INTO fields (id, table_id, data_type, name, primary_key, auto_generated, removable)
 VALUES (field_comp_id, table_comp_id, rec.data_type, rec.field_name, rec.primary_key, rec.auto_generated, false);
 
--- c. Insert English Singular Label
-INSERT INTO nls_labels (component_id, language_code, label_type, label_text)
-VALUES (field_comp_id, 'en', 'LABEL', rec.label_singular_en);
-
--- d. Insert Spanish Singular Label
-INSERT INTO nls_labels (component_id, language_code, label_type, label_text)
-VALUES (field_comp_id, 'es', 'LABEL', rec.label_singular_es);
+-- c) set NLS in one shot
+UPDATE components
+SET nls_labels = jsonb_build_object(
+        'en', jsonb_build_object('LABEL', rec.label_singular_en),
+        'es', jsonb_build_object('LABEL', rec.label_singular_es)
+                 )
+WHERE id = field_comp_id;
 END LOOP;
 END $$;
 
+-- attribute created_by
 UPDATE components
 SET created_by = users.id
     FROM users
 WHERE users.username = 'admin';
 
--- Commit Transaction
 COMMIT;
