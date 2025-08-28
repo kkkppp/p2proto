@@ -2,7 +2,6 @@ package org.p2proto.repository.table;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.tool.hbm2ddl.ColumnMetadata;
 import org.p2proto.ddl.Domain;
 import org.p2proto.dto.ColumnDefaultHolder;
 import org.p2proto.dto.ColumnMetaData;
@@ -20,46 +19,44 @@ import java.util.stream.Collectors;
 @Repository
 public class TableRepository {
     public static final String DEFAULT_LANGUAGE = "en";
-    /**
-     * Query to retrieve table's physical name and logical name.
-     */
+
+    /** Query to retrieve table's physical name and logical name. */
     public static final String TABLE_QUERY =
             "SELECT t.id AS table_id, t.logical_name, t.type " +
                     "FROM tables t WHERE t.id = ?::uuid";
-    /**
-     * Query to retrieve single table labels.
-     */
+
+    /** Query to retrieve single table labels (from components.nls_labels). */
     public static final String SINGLE_TABLE_LABELS_QUERY =
-            "SELECT lab.label_text AS table_label, labp.label_text AS table_plural_label " +
-                    "FROM nls_labels lab " +
-                    "LEFT JOIN nls_labels labp ON labp.component_id = lab.component_id " +
-                    "AND labp.language_code = ? AND labp.label_type = 'PLURAL_LABEL' " +
-                    "WHERE lab.component_id = ?::uuid AND lab.language_code = ? AND lab.label_type = 'LABEL'";
-    /**
-     * Query to retrieve all table's labels.
-     */
-    public static final String ALL_TABLES_LABELS_QUERY =
-            "SELECT nl.component_id AS table_id, nl.label_text, nl.label_type " +
-                    "  FROM nls_labels nl " +
-                    " WHERE nl.language_code = '%s' " +
-                    "   AND nl.component_id IN (SELECT t.id FROM tables t) " +
-                    "   AND nl.label_type IN ('LABEL', 'PLURAL_LABEL')";
-    /**
-     * Query to retrieve field metadata.
-     */
+            "SELECT " +
+                    "  c.nls_labels #>> ARRAY[?,'LABEL']        AS table_label, " +
+                    "  c.nls_labels #>> ARRAY[?,'PLURAL_LABEL'] AS table_plural_label " +
+                    "FROM components c " +
+                    "WHERE c.id = ?::uuid";
+
+    /** Query to retrieve all tables with their labels for a language (single pass). */
+    public static final String ALL_TABLES_WITH_LABELS_QUERY =
+            "SELECT t.id AS table_id, t.logical_name, t.type, " +
+                    "       c.nls_labels #>> ARRAY[?,'LABEL']        AS label, " +
+                    "       c.nls_labels #>> ARRAY[?,'PLURAL_LABEL'] AS plural_label " +
+                    "  FROM tables t " +
+                    "  JOIN components c ON c.id = t.id";
+
+    /** Query to retrieve field metadata + field label from components.nls_labels. */
     public static final String FIELDS_QUERY =
-            "SELECT f.id AS field_id, f.name AS field_name, f.data_type, f.auto_generated, f.removable, f.default_value, f.properties, l.label_text" +
-                    " FROM fields f, nls_labels l WHERE f.table_id = ?::uuid and f.id = l.component_id and l.label_type='LABEL' and l.language_code= ?";
+            "SELECT f.id AS field_id, f.name AS field_name, f.data_type, f.auto_generated, " +
+                    "       f.removable, f.default_value, f.properties, " +
+                    "       (c.nls_labels #>> ARRAY[?,'LABEL']) AS label_text " +
+                    "  FROM fields f " +
+                    "  JOIN components c ON c.id = f.id " +
+                    " WHERE f.table_id = ?::uuid";
 
     public static final String ALL_TABLES_QUERY =
-                            "SELECT id, logical_name, type FROM tables";
+            "SELECT id, logical_name, type FROM tables";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    /**
-     * Retrieves a mapping of logical_name -> table UUID for all tables
-     */
+    /** Retrieves a mapping of logical_name -> table UUID for all tables */
     @Cacheable(cacheNames = "tables", key = "'logicalNameToId'")
     public Map<String, UUID> findAll() {
         return jdbcTemplate.query(ALL_TABLES_QUERY, rs -> {
@@ -74,91 +71,68 @@ public class TableRepository {
     }
 
     /**
-     * Loads table-level info and returns them
-     * in ascending order by tablePluralLabel.
+     * Loads table-level info (including LABEL & PLURAL_LABEL for DEFAULT_LANGUAGE)
+     * and returns them in ascending order by tablePluralLabel.
      */
     @Cacheable(cacheNames = "tables", key = "'allTablesOrderedByPluralLabel'")
     public List<TableMetadata> findAllWithLabels() {
-        // 1) Load all tables
-        List<Map<String, Object>> tableRows = jdbcTemplate.queryForList(TableRepository.ALL_TABLES_QUERY);
-        if (tableRows.isEmpty()) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                ALL_TABLES_WITH_LABELS_QUERY, DEFAULT_LANGUAGE, DEFAULT_LANGUAGE
+        );
+        if (rows.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // Map tableId -> TableMetadata
-        Map<UUID, TableMetadata> tableMap = new LinkedHashMap<>();
-        for (Map<String, Object> row : tableRows) {
-            UUID tableId = (UUID) row.get("id");
+        List<TableMetadata> results = new ArrayList<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            UUID tableId = (UUID) row.get("table_id");
             String logicalName = (String) row.get("logical_name");
-            TableMetadata.TableTypeEnum tableType = TableMetadata.TableTypeEnum.valueOf(row.get("type").toString());
+            TableMetadata.TableTypeEnum tableType =
+                    TableMetadata.TableTypeEnum.valueOf(row.get("type").toString());
 
-            // We won't load columns, so set columns = Collections.emptyList()
-            tableMap.put(tableId, new TableMetadata(
+            String label = (String) row.get("label");
+            String plural = (String) row.get("plural_label");
+
+            String tableLabel = label != null ? label : logicalName;
+            String tablePluralLabel = plural != null ? plural : tableLabel + "s";
+
+            results.add(new TableMetadata(
                     tableId,
                     logicalName,
-                    null, // tableLabel
-                    null, // tablePluralLabel
+                    tableLabel,
+                    tablePluralLabel,
                     tableType,
-                    Collections.emptyList()
+                    Collections.emptyList() // no columns here
             ));
         }
 
-        // 2) Load labels (LABEL & PLURAL_LABEL) with no JOIN
-        String labelsQuery = String.format(TableRepository.ALL_TABLES_LABELS_QUERY, TableRepository.DEFAULT_LANGUAGE);
-        Map<UUID, Map<String, String>> tableLabelsMap = new HashMap<>();
-
-        jdbcTemplate.query(labelsQuery, rs -> {
-            UUID tableId = (UUID) rs.getObject("table_id");
-            String labelText = rs.getString("label_text");
-            String labelType = rs.getString("label_type");
-            tableLabelsMap
-                    .computeIfAbsent(tableId, k -> new HashMap<>())
-                    .put(labelType, labelText);
-        });
-
-        // 3) Apply labels
-        for (Map.Entry<UUID, TableMetadata> entry : tableMap.entrySet()) {
-            UUID tableId = entry.getKey();
-            TableMetadata meta = entry.getValue();
-
-            String fallback = meta.getTableName();
-            Map<String, String> typeMap = tableLabelsMap.get(tableId);
-
-            if (typeMap != null) {
-                String singular = typeMap.getOrDefault("LABEL", fallback);
-                String plural = typeMap.getOrDefault("PLURAL_LABEL", singular + "s");
-                meta.setTableLabel(singular);
-                meta.setTablePluralLabel(plural);
-            } else {
-                meta.setTableLabel(fallback);
-                meta.setTablePluralLabel(fallback + "s");
-            }
-        }
-
-        // 4) Sort by plural label (ascending)
-        List<TableMetadata> results = new ArrayList<>(tableMap.values());
         results.sort(Comparator.comparing(TableMetadata::getTablePluralLabel));
-
-        // 5) Return sorted list
         return results;
     }
 
     @Cacheable(cacheNames = "tables", key = "#tableId")
     public TableMetadata findByID(UUID tableId) {
-        // 1) Query table info
-        Map<String, Object> tableRow = jdbcTemplate.queryForMap(TableRepository.TABLE_QUERY, tableId);
+        // 1) table info
+        Map<String, Object> tableRow = jdbcTemplate.queryForMap(TABLE_QUERY, tableId);
         if (tableRow.isEmpty()) {
             throw new RuntimeException("No table found with ID = " + tableId);
         }
         String logicalName = (String) tableRow.get("logical_name");
-        TableMetadata.TableTypeEnum tableType = TableMetadata.TableTypeEnum.valueOf(tableRow.get("type").toString());
-        // 2) Query table labels
-        Map<String, Object> labelRow = jdbcTemplate.queryForMap(TableRepository.SINGLE_TABLE_LABELS_QUERY, TableRepository.DEFAULT_LANGUAGE, tableId, TableRepository.DEFAULT_LANGUAGE);
-        String tableLabel = Optional.ofNullable((String) labelRow.get("table_label")).orElse(logicalName);
-        String tablePluralLabel = Optional.ofNullable((String) labelRow.get("table_plural_label")).orElse(tableLabel + "s");
+        TableMetadata.TableTypeEnum tableType =
+                TableMetadata.TableTypeEnum.valueOf(tableRow.get("type").toString());
 
-        // 3) Query fields
-        List<Map<String, Object>> fieldRows = jdbcTemplate.queryForList(TableRepository.FIELDS_QUERY, tableId, TableRepository.DEFAULT_LANGUAGE);
+        // 2) table labels from JSONB
+        Map<String, Object> labelRow = jdbcTemplate.queryForMap(
+                SINGLE_TABLE_LABELS_QUERY, DEFAULT_LANGUAGE, DEFAULT_LANGUAGE, tableId
+        );
+        String tableLabel = Optional.ofNullable((String) labelRow.get("table_label"))
+                .orElse(logicalName);
+        String tablePluralLabel = Optional.ofNullable((String) labelRow.get("table_plural_label"))
+                .orElse(tableLabel + "s");
+
+        // 3) fields with labels from JSONB
+        List<Map<String, Object>> fieldRows =
+                jdbcTemplate.queryForList(FIELDS_QUERY, DEFAULT_LANGUAGE, tableId);
 
         List<ColumnMetaData> columns = fieldRows.stream().map(row -> {
             String fieldName = (String) row.get("field_name");
@@ -176,9 +150,16 @@ public class TableRepository {
                 log.error(e.getLocalizedMessage());
                 defaultValue = null;
             }
-            return new ColumnMetaData(fieldId, fieldName, fieldLabel, domain, (Boolean) row.get("primary_key"),
-                    (Boolean) row.get("auto_generated"), (Boolean) row.get("removable"), defaultValue,
-                    Collections.emptyMap());
+            return new ColumnMetaData(
+                    fieldId, fieldName,
+                    fieldLabel, // label from components.nls_labels
+                    domain,
+                    (Boolean) row.get("primary_key"),
+                    (Boolean) row.get("auto_generated"),
+                    (Boolean) row.get("removable"),
+                    defaultValue,
+                    Collections.emptyMap()
+            );
         }).collect(Collectors.toList());
 
         return new TableMetadata(
@@ -191,8 +172,14 @@ public class TableRepository {
         );
     }
 
+    /**
+     * Inserts the table row (assumes the corresponding components row already exists with the same id),
+     * and sets labels in components.nls_labels for DEFAULT_LANGUAGE.
+     */
     public void createMetadataInDb(TableMetadata table) {
-        String tableSql = "INSERT INTO tables (id, TYPE, logical_name, removable) VALUES (?, ?::table_type_enum, ?, ?)";
+        String tableSql =
+                "INSERT INTO tables (id, TYPE, logical_name, removable) " +
+                        "VALUES (?, ?::table_type_enum, ?, ?)";
 
         jdbcTemplate.update(tableSql,
                 table.getId(),
@@ -201,43 +188,66 @@ public class TableRepository {
                 true
         );
 
-        String labelSql = "INSERT INTO nls_labels (component_id, language_code, label_type, label_text) VALUES (?, ?, ?::label_type_enum, ?)";
+        // Merge LABEL and PLURAL_LABEL into JSONB (deep-safe)
+        String upsertLabelsSql =
+                "UPDATE components SET nls_labels = " +
+                        "  jsonb_set( " +
+                        "    jsonb_set( COALESCE(nls_labels,'{}'::jsonb), ARRAY[?,'LABEL'],        to_jsonb(?::text), true), " +
+                        "    ARRAY[?,'PLURAL_LABEL'], to_jsonb(?::text), true" +
+                        "  ) " +
+                        "WHERE id = ?::uuid";
 
-        jdbcTemplate.update(labelSql, table.getId(), DEFAULT_LANGUAGE, "LABEL", table.getTableLabel());
-        jdbcTemplate.update(labelSql, table.getId(), DEFAULT_LANGUAGE, "PLURAL_LABEL", table.getTablePluralLabel());
+        jdbcTemplate.update(upsertLabelsSql,
+                DEFAULT_LANGUAGE, table.getTableLabel(),
+                DEFAULT_LANGUAGE, table.getTablePluralLabel(),
+                table.getId()
+        );
 
         for (ColumnMetaData column : table.getColumns()) {
             createColumnMetadataInDb(column, table.getId());
         }
     }
 
+    /**
+     * Updates labels in components.nls_labels for a table (DEFAULT_LANGUAGE).
+     */
     public void updateMetadataInDb(TableMetadata table) {
-/*        String tableSql = "INSERT INTO tables (id, TYPE, logical_name, removable) VALUES (?, ?::table_type_enum, ?, ?)";
+        String upsertLabelsSql =
+                "UPDATE components SET nls_labels = " +
+                        "  jsonb_set( " +
+                        "    jsonb_set( COALESCE(nls_labels,'{}'::jsonb), ARRAY[?,'LABEL'],        to_jsonb(?::text), true), " +
+                        "    ARRAY[?,'PLURAL_LABEL'], to_jsonb(?::text), true" +
+                        "  ) " +
+                        "WHERE id = ?::uuid";
 
-        jdbcTemplate.update(tableSql,
-                table.getId(),
-                table.getTableType().name(),
-                table.getTableName(),
-                true
-        );*/
-
-        String labelSql = "update nls_labels set label_text = ? where component_id= ?::uuid and label_type=?::label_type_enum and language_code=?";
-
-        jdbcTemplate.update(labelSql, table.getTableLabel(), table.getId(), "LABEL", DEFAULT_LANGUAGE);
-        jdbcTemplate.update(labelSql, table.getTablePluralLabel(), table.getId(), "PLURAL_LABEL", DEFAULT_LANGUAGE);
-
+        jdbcTemplate.update(upsertLabelsSql,
+                DEFAULT_LANGUAGE, table.getTableLabel(),
+                DEFAULT_LANGUAGE, table.getTablePluralLabel(),
+                table.getId()
+        );
     }
-        public void createColumnMetadataInDb(ColumnMetaData column, UUID tableId) {
-        String sql = "INSERT INTO fields (id, table_id, name, data_type, removable, primary_key, auto_generated, default_value, properties) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb)";
 
-            String defaultValueJson;
-            try {
-                defaultValueJson = column.getDefaultValue() == null ? null : column.getDefaultValue().toJson();
-            } catch (JsonProcessingException e) {
-                log.error(e.getLocalizedMessage());
-                defaultValueJson = "{}";
-            }
-            jdbcTemplate.update(sql,
+    /**
+     * Inserts the field row (assumes components row for the field id exists),
+     * and sets the field LABEL in components.nls_labels for DEFAULT_LANGUAGE.
+     */
+    public void createColumnMetadataInDb(ColumnMetaData column, UUID tableId) {
+        String sql =
+                "INSERT INTO fields " +
+                        " (id, table_id, name, data_type, removable, primary_key, auto_generated, default_value, properties) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb)";
+
+        String defaultValueJson;
+        try {
+            defaultValueJson = column.getDefaultValue() == null
+                    ? null
+                    : column.getDefaultValue().toJson();
+        } catch (JsonProcessingException e) {
+            log.error(e.getLocalizedMessage());
+            defaultValueJson = "{}";
+        }
+
+        jdbcTemplate.update(sql,
                 column.getId(),
                 tableId,
                 column.getName(),
@@ -246,13 +256,19 @@ public class TableRepository {
                 column.getPrimaryKey(),
                 column.getAutoGenerated(),
                 defaultValueJson,
-                column.getAdditionalProperties() != null ? column.getAdditionalProperties().toString() : "{}"
-
+                column.getAdditionalProperties() != null
+                        ? column.getAdditionalProperties().toString()
+                        : "{}"
         );
 
-        String labelSql = "INSERT INTO nls_labels (component_id, language_code, label_type, label_text) VALUES (?, ?, ?::label_type_enum, ?)";
+        // Set/merge the field's LABEL into components.nls_labels
+        String upsertLabelSql =
+                "UPDATE components SET nls_labels = " +
+                        "  jsonb_set( COALESCE(nls_labels,'{}'::jsonb), ARRAY[?,'LABEL'], to_jsonb(?::text), true) " +
+                        "WHERE id = ?::uuid";
 
-        jdbcTemplate.update(labelSql, column.getId(), DEFAULT_LANGUAGE, "LABEL", column.getLabel());
-
+        jdbcTemplate.update(upsertLabelSql,
+                DEFAULT_LANGUAGE, column.getLabel(), column.getId()
+        );
     }
 }
