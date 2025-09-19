@@ -69,7 +69,6 @@ VALUES ('user', 'user@example.com', 'User', 'Account',
 CREATE TYPE component_type_enum AS ENUM ('TABLE','FIELD','PAGE','ELEMENT');
 CREATE TYPE component_status_enum AS ENUM ('ACTIVE','LOCKED','INACTIVE');
 CREATE TYPE table_type_enum     AS ENUM ('STANDARD','USERS','ACCESS');
-CREATE TYPE label_type_enum     AS ENUM ('LABEL','PLURAL_LABEL','DESCRIPTION','INSTRUCTION','POPUP');
 
 -- Components (NLS LABELS AS JSONB HERE)
 CREATE TABLE components
@@ -109,6 +108,19 @@ CREATE TABLE component_history
     ddl_statement TEXT,
     old_state     JSONB,
     new_state     JSONB
+);
+
+-- component relations
+CREATE TYPE relation_type as ENUM (
+  'LF_SOURCE',
+  'FORMULA_PART'
+);
+
+CREATE TABLE component_relation (
+    parent_id UUID not null NOT NULL REFERENCES components (id),
+    child_id UUID not null NOT NULL REFERENCES components (id),
+    relation_type relation_type nut null,
+    UNIQUE (parent_id, child_id, relation_type)
 );
 
 -- Tables
