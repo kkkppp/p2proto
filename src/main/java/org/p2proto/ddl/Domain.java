@@ -17,25 +17,28 @@ public enum Domain {
     DATETIME(5, "DATETIME", "label.domain.datetime", "TIMESTAMP"),
     INTEGER(6, "INTEGER", "label.domain.integer", "INT"),
     FLOAT(7, "FLOAT", "label.domain.float", "FLOAT"),
-    AUTOINCREMENT(8, "AUTOINCREMENT", "label.domain.autoincrement", "INT", true),
-    PASSWORD(9, "PASSWORD", "label.domain.password", "VARCHAR(255)");
+    AUTOINCREMENT(8, "AUTOINCREMENT", "label.domain.autoincrement", "INT", true, false),
+    PASSWORD(9, "PASSWORD", "label.domain.password", "VARCHAR(255)"),
+    FORMULA(10, "FORMULA", "label.domain.formula", "TEXT", false, true);
 
     private final int code;
     private final String internalName;
     private final String resourceId;       // For Spring NLS
     private final String liquibaseType;    // For Liquibase migrations
     private final boolean autoIncrement;
+    private final boolean virtual;
 
     Domain(int code, String internalName, String resourceId, String liquibaseType) {
-        this(code, internalName, resourceId, liquibaseType, false);
+        this(code, internalName, resourceId, liquibaseType, false, false);
     }
 
-    Domain(int code, String internalName, String resourceId, String liquibaseType, boolean autoIncrement) {
+    Domain(int code, String internalName, String resourceId, String liquibaseType, boolean autoIncrement, boolean virtual) {
         this.code = code;
         this.internalName = internalName;
         this.resourceId = resourceId;
         this.liquibaseType = liquibaseType;
         this.autoIncrement = autoIncrement;
+        this.virtual = virtual;
     }
 
     public int getCode() {
@@ -56,6 +59,10 @@ public enum Domain {
 
     public boolean isAutoIncrement() {
         return autoIncrement;
+    }
+
+    public boolean isVirtual() {
+        return virtual;
     }
 
     /**

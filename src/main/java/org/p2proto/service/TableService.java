@@ -101,7 +101,6 @@ public class TableService {
                 "ID",
                 Domain.AUTOINCREMENT,
                 true,
-                true,
                 false,
                 null,
                 Map.of()
