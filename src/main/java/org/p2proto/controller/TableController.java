@@ -1,5 +1,6 @@
 package org.p2proto.controller;
 
+import org.p2proto.ddl.Domain;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.TableMetadata;
 import org.p2proto.model.record.FieldType;
@@ -9,6 +10,8 @@ import org.p2proto.repository.TableMetadataCrudRepository;
 import org.p2proto.repository.table.TableRepository;
 import org.p2proto.service.TableService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +27,13 @@ public class TableController {
     private final TableService tableService;
     private final TableRepository tableRepository;
     private final HttpServletRequest request;
+    private final PasswordEncoder passwordEncoder;
 
-    public TableController(TableService tableService, TableRepository tableRepository, HttpServletRequest request) {
+    public TableController(TableService tableService, TableRepository tableRepository, HttpServletRequest request, PasswordEncoder passwordEncoder) {
         this.tableService = tableService;
         this.tableRepository = tableRepository;
         this.request = request;
+        this.passwordEncoder = passwordEncoder;
     }
 
     private Map<String, Object> buildTableData(String tableName, List<String> fieldsToRender) {
@@ -42,7 +47,7 @@ public class TableController {
                 .collect(Collectors.toList());
 
         // Retrieve all rows from the CRUD repository
-        TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
+        TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, passwordEncoder);
         List<Map<String, Object>> records = repo.findAll();
 
         // Determine which fields to render: if none provided, render all columns
@@ -128,29 +133,45 @@ public class TableController {
         return ResponseEntity.ok(payload);
     }
 
-    private Map<String, Object> prepareRecordPayload(String tableName,
-                                                     String recordId) {
+    private Map<String, Object> prepareRecordPayload(String tableName, String recordId) {
 
         UUID tableID = tableRepository.findAll().get(tableName);
         TableMetadata meta = tableRepository.findByID(tableID);
 
-        // Build FormField list
+        // Build FormField list (keep original order from metadata)
         List<FormField> fields = meta.getColumns().stream()
                 .map(ColumnMetaData::toFormField)
                 .collect(Collectors.toList());
 
         // Populate values when editing
-        if (recordId != null) {
+        if (recordId != null && !recordId.isBlank()) {
+            // NEW: repo ctor now takes (JdbcTemplate, TableMetadata, PasswordEncoder)
             TableMetadataCrudRepository repo =
-                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), meta, "id");
+                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), meta, passwordEncoder);
 
-            Map<String, Object> db = repo.findById(Integer.parseInt(recordId));
-            if (db != null) {
+            // NEW: parse PK according to its domain
+            Object pkValue = parsePk(recordId, meta.getPrimaryKeyMeta().getDomain());
+
+            repo.findById(pkValue).ifPresent(db -> {
                 fields.forEach(f -> {
                     Object v = db.get(f.getName());
-                    f.setValue(v == null ? "" : v.toString());
+
+                    // Mask passwords; stringify dates; otherwise toString or empty
+                    if (meta.getColumnsByName().get(f.getName()).getDomain() == Domain.PASSWORD) {
+                        f.setValue(TableMetadataCrudRepository.PASSWORD_MASK);
+                    } else if (v instanceof java.time.LocalDate ld) {
+                        f.setValue(ld.toString()); // ISO-8601, e.g. 2025-10-05
+                    } else if (v instanceof java.time.OffsetDateTime odt) {
+                        f.setValue(odt.toString()); // ISO-8601 with offset
+                    } else if (v instanceof java.time.LocalDateTime ldt) {
+                        f.setValue(ldt.toString()); // ISO-8601
+                    } else if (v instanceof java.util.Date d) {
+                        f.setValue(java.time.OffsetDateTime.ofInstant(d.toInstant(), java.time.ZoneOffset.UTC).toString());
+                    } else {
+                        f.setValue(v == null ? "" : v.toString());
+                    }
                 });
-            }
+            });
         }
 
         RecordForm recordForm = new RecordForm(fields);
@@ -161,6 +182,22 @@ public class TableController {
         payload.put("record", recordForm);
 
         return payload;
+    }
+
+    /** Helper: parse primary key by domain. */
+    private Object parsePk(String raw, Domain domain) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return switch (domain) {
+                case UUID -> java.util.UUID.fromString(raw);
+                case INTEGER -> Integer.valueOf(raw);
+                case FLOAT -> Double.valueOf(raw);
+                // AUTOINCREMENT is a property; INTEGER domain usually backs it:
+                default -> raw; // TEXT, PASSWORD, etc. – treat as string
+            };
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid primary key value for domain " + domain + ": " + raw, e);
+        }
     }
 
     @PostMapping(value = "/{tableName}/create", consumes = "application/json")
@@ -210,7 +247,7 @@ public class TableController {
             TableMetadata tableMetadata = tableRepository.findByID(tableID);
 
             // Initialize the repository
-            TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
+            TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, passwordEncoder);
 
             // Convert RecordForm to a Map<String, Object> for saving
             Map<String, Object> recordData = record.getFields().stream()
@@ -250,7 +287,7 @@ public class TableController {
 
             // 2. Initialize repository
             TableMetadataCrudRepository repo =
-                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, "id");
+                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, passwordEncoder);
 
             // 3. Perform the delete
             repo.delete(Integer.valueOf(id));

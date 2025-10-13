@@ -14,7 +14,6 @@ import org.p2proto.model.component.Component;
 import org.p2proto.model.component.ComponentHistory;
 import org.p2proto.repository.table.TableRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -30,6 +29,7 @@ import java.util.stream.Collectors;
 public class TableService {
 
     public static final String CURRENT_TIMESTAMP = "CURRENT_TIMESTAMP";
+
     private final JdbcTemplate jdbcTemplate;
     private final DDLExecutor ddlExecutor;
     private final ComponentService componentService;
@@ -46,6 +46,8 @@ public class TableService {
         this.tableRepository = tableRepository;
     }
 
+    // ---------- Public API ----------
+
     @Transactional(propagation = Propagation.SUPPORTS)
     public void createTable(String tableName, String tableLabel, String tablePluralLabel, CurrentUser currentUser) {
         createTableInternal(new CreateTableCommand(tableName, tableLabel, tablePluralLabel), currentUser);
@@ -56,79 +58,138 @@ public class TableService {
         createTableInternal(new CreateTableCommand(tableMetadata), currentUser);
     }
 
-    private void createTableInternal(CreateTableCommand command, CurrentUser currentUser) {
-        Component component = null;
-        Long historyId = null;
-        try {
-            // TODO validation of table and field names
-            TableMetadata tableMetadata = command.getTable();
-            // create component and history entry for table early so they are commited before DDL starts
-            component = componentService.createComponent(Component.ComponentTypeEnum.TABLE, Component.ComponentStatusEnum.LOCKED, currentUser.getCurrentUserId());
-            tableMetadata.setId(component.getId());
-            historyId = componentService.createHistory(component.getId(), ComponentHistory.ComponentHistoryStatus.IN_PROGRESS, currentUser.getCurrentUserId());
+    // ---------- Internals ----------
 
+    private void createTableInternal(CreateTableCommand command, CurrentUser currentUser) {
+        Component tableComponent = null;
+        Long historyId = null;
+
+        try {
+            TableMetadata inputMeta = command.getTable();
+
+            // 1) Create TABLE component + history BEFORE DDL
+            tableComponent = componentService.createComponent(
+                    Component.ComponentTypeEnum.TABLE,
+                    Component.ComponentStatusEnum.LOCKED,
+                    currentUser.getCurrentUserId()
+            );
+            historyId = componentService.createHistory(
+                    tableComponent.getId(),
+                    ComponentHistory.ComponentHistoryStatus.IN_PROGRESS,
+                    currentUser.getCurrentUserId()
+            );
+
+            // 2) Execute DDL
             List<String> ddl = ddlExecutor.executeDDL(command);
 
-            // after successful DDL, create remaining component and history entries for fields as successful
-            for (ColumnMetaData columnMetadata : tableMetadata.getColumns()) {
-                Component columnComponent = componentService.createComponent(Component.ComponentTypeEnum.FIELD, Component.ComponentStatusEnum.ACTIVE, currentUser.getCurrentUserId());
-                columnMetadata.setId(columnComponent.getId());
-                componentService.createHistory(columnComponent.getId(), ComponentHistory.ComponentHistoryStatus.COMPLETED, currentUser.getCurrentUserId());
+            // 3) Create FIELD components AFTER successful DDL
+            Map<String, UUID> colIds = new LinkedHashMap<>();
+            for (ColumnMetaData c : inputMeta.getColumns()) {
+                Component fieldComponent = componentService.createComponent(
+                        Component.ComponentTypeEnum.FIELD,
+                        Component.ComponentStatusEnum.ACTIVE,
+                        currentUser.getCurrentUserId()
+                );
+                componentService.createHistory(
+                        fieldComponent.getId(),
+                        ComponentHistory.ComponentHistoryStatus.COMPLETED,
+                        currentUser.getCurrentUserId()
+                );
+                colIds.put(c.getName(), fieldComponent.getId());
             }
-            // create table metadata
-            tableRepository.createMetadataInDb(tableMetadata);
-            // finalize component and history
-            componentService.markSuccess(component.getId(), historyId, ddl);
+
+            // 4) Rebuild columns with assigned component IDs (preserve decorators)
+            List<ColumnMetaData> rebuiltCols = inputMeta.getColumns().stream()
+                    .map(c -> new ColumnMetaData(
+                            colIds.get(c.getName()),            // id (new)
+                            c.getName(),
+                            c.getLabel(),
+                            c.getDomain(),
+                            c.getPrimaryKey(),
+                            c.getRemovable(),
+                            c.getDefaultValue(),
+                            c.getAdditionalProperties(),
+                            c.getSelectDecorator(),
+                            c.getWhereDecorator()
+                    ))
+                    .collect(Collectors.toUnmodifiableList());
+
+            // Repoint PK meta to the rebuilt instance (by name), if present
+            String pkName = inputMeta.getPrimaryKeyMeta() != null ? inputMeta.getPrimaryKeyMeta().getName() : null;
+            ColumnMetaData rebuiltPk = (pkName == null) ? null :
+                    rebuiltCols.stream().filter(c -> c.getName().equals(pkName)).findFirst().orElse(null);
+
+            // 5) Build final immutable TableMetadata with table component ID + rebuilt columns
+            TableMetadata metaToPersist = TableMetadata.builder()
+                    .id(tableComponent.getId())
+                    .tableName(inputMeta.getTableName())
+                    .tableLabel(inputMeta.getTableLabel())
+                    .tablePluralLabel(inputMeta.getTablePluralLabel())
+                    .tableType(inputMeta.getTableType())
+                    .columns(rebuiltCols)
+                    .primaryKeyMeta(rebuiltPk) // allow inference if null
+                    .build();
+
+            // 6) Persist metadata and mark success
+            tableRepository.createMetadataInDb(metaToPersist);
+            componentService.markSuccess(tableComponent.getId(), historyId, ddl);
+
         } catch (DatabaseException | SQLException e) {
-            // in case of DDL failure, mark table component as inactive and history entry as failed. No entries for columns
-            if (component != null ) {
-                componentService.markFailure(component.getId(), historyId);
+            log.error("Failed to create table", e);
+            if (tableComponent != null) {
+                componentService.markFailure(tableComponent.getId(), historyId);
             }
         }
     }
 
+    // ---------- Defaults ----------
+
     /**
-     * Returns a default list of columns for a new table:
-     * 1) "id" as a primary auto-increment key
-     * 2) "created_at" timestamp
-     * 3) "updated_at" timestamp
+     * Default columns:
+     *  - id          AUTOINCREMENT (PK)
+     *  - summary     TEXT
+     *  - created_at  DATETIME (client-side default CURRENT_TIMESTAMP on create)
+     *  - updated_at  DATETIME (client-side default CURRENT_TIMESTAMP on update)
      */
     public static List<ColumnMetaData> defaultColumns() {
-        // “autoGenerated = true” or rely on Domain.AUTOINCREMENT.isAutoIncrement().
         ColumnMetaData idCol = new ColumnMetaData(
-                null,
+                null,                       // id (component id assigned later)
                 "id",
                 "ID",
                 Domain.AUTOINCREMENT,
-                true,
-                false,
-                null,
-                Map.of()
+                true,                       // primaryKey
+                false,                      // removable
+                null,                       // default
+                Map.of()                    // additional props
         );
+
+        ColumnDefaultHolder createdAtDef = ColumnDefaultHolder.builder()
+                .executionContext(ColumnDefaultHolder.ExecutionContext.CLIENT_SIDE)
+                .triggerEvent(ColumnDefaultHolder.TriggerEvent.ON_CREATE)
+                .valueType(ColumnDefaultHolder.DefaultValueType.FORMULA)
+                .value(CURRENT_TIMESTAMP)
+                .build();
 
         ColumnMetaData createdAtCol = new ColumnMetaData(
                 "created_at",
                 "Created At",
                 Domain.DATETIME,
-                ColumnDefaultHolder.builder().
-                        executionContext(ColumnDefaultHolder.ExecutionContext.CLIENT_SIDE).
-                        triggerEvent(ColumnDefaultHolder.TriggerEvent.ON_CREATE).
-                        valueType(ColumnDefaultHolder.DefaultValueType.FORMULA).
-                        value("CURRENT_TIMESTAMP").
-                        build(),
+                createdAtDef,
                 Map.of()
         );
+
+        ColumnDefaultHolder updatedAtDef = ColumnDefaultHolder.builder()
+                .executionContext(ColumnDefaultHolder.ExecutionContext.CLIENT_SIDE)
+                .triggerEvent(ColumnDefaultHolder.TriggerEvent.ON_UPDATE)
+                .valueType(ColumnDefaultHolder.DefaultValueType.FORMULA)
+                .value(CURRENT_TIMESTAMP)
+                .build();
 
         ColumnMetaData updatedAtCol = new ColumnMetaData(
                 "updated_at",
                 "Updated At",
                 Domain.DATETIME,
-                ColumnDefaultHolder.builder().
-                        executionContext(ColumnDefaultHolder.ExecutionContext.CLIENT_SIDE).
-                        triggerEvent(ColumnDefaultHolder.TriggerEvent.ON_UPDATE).
-                        valueType(ColumnDefaultHolder.DefaultValueType.FORMULA).
-                        value(CURRENT_TIMESTAMP).
-                        build(),
+                updatedAtDef,
                 Map.of()
         );
 
@@ -142,6 +203,4 @@ public class TableService {
 
         return List.of(idCol, summaryCol, createdAtCol, updatedAtCol);
     }
-
-
 }

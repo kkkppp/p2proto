@@ -1,285 +1,223 @@
+// File: src/main/java/org/p2proto/repository/TableMetadataCrudRepository.java
 package org.p2proto.repository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.p2proto.ddl.Domain;
 import org.p2proto.dto.ColumnDefaultHolder;
-import org.p2proto.dto.TableMetadata;
 import org.p2proto.dto.ColumnMetaData;
+import org.p2proto.dto.TableMetadata;
+import org.p2proto.sql.*;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.time.Instant;
+import java.time.*;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.p2proto.service.TableService.CURRENT_TIMESTAMP;
 
-/**
- * Basic CRUD repository that uses TableMetadata to dynamically build
- * SQL statements for a specific table.
- */
 @Slf4j
 public class TableMetadataCrudRepository {
 
     public static final String PASSWORD_MASK = "********";
-    private final JdbcTemplate jdbcTemplate;
-    private final TableMetadata tableMetadata;
-    private final String primaryKeyColumn;
 
-    /**
-     * @param jdbcTemplate     Spring's JdbcTemplate for DB operations
-     * @param tableMetadata    Metadata for the target table (physical name + columns)
-     * @param primaryKeyColumn The name of the primary key column in the table
-     */
+    private final NamedParameterJdbcTemplate namedJdbc;
+    private final TableMetadata meta;
+    private final PasswordEncoder passwordEncoder;
+
     public TableMetadataCrudRepository(JdbcTemplate jdbcTemplate,
                                        TableMetadata tableMetadata,
-                                       String primaryKeyColumn) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.tableMetadata = tableMetadata;
-        this.primaryKeyColumn = primaryKeyColumn;
+                                       PasswordEncoder passwordEncoder) {
+        this.namedJdbc = new NamedParameterJdbcTemplate(jdbcTemplate);
+        this.meta = Objects.requireNonNull(tableMetadata, "tableMetadata");
+        this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
     }
 
-    /**
-     * Retrieves all rows from the table, returning each row as a Map of column->value
-     */
+    // ---------- READ ----------
+
     public List<Map<String, Object>> findAll() {
-        String sql = tableMetadata.generateSelectStatement();
-        return jdbcTemplate.queryForList(sql);
+        String sql = meta.generateSelectStatement();
+        return namedJdbc.getJdbcTemplate().queryForList(sql);
     }
 
-    /**
-     * Retrieves a single row by primary key.
-     *
-     * @param pkValue The primary key value (e.g., UUID or Long, etc.)
-     * @return A Map of column->value for the row, or null if none found
-     */
-    public Map<String, Object> findById(Integer pkValue) {
-        ColumnMetaData primaryKeyMeta = tableMetadata.getColumns().stream()
-                .filter(column -> column.getName().equals(primaryKeyColumn))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Primary key column not found: " + primaryKeyColumn));
-
-        String whereClause = primaryKeyMeta.generateWherePart();
-        String sql = tableMetadata.generateSelectStatement() + " WHERE " + whereClause;
-
+    public Optional<Map<String, Object>> findById(Object pkValue) {
+        Criterion c = Condition.eq(meta.getPrimaryKeyMeta().getName(), pkValue);
+        WhereSql ws = new WhereRenderer(meta).render(c);
+        String sql = meta.generateSelectStatement() + " " + ws.sql();
         try {
-            return jdbcTemplate.queryForMap(sql, pkValue);
+            Map<String, Object> row = namedJdbc.queryForMap(sql, ws.params());
+            return Optional.of(row);
         } catch (EmptyResultDataAccessException e) {
-            // No row found
-            return null;
+            return Optional.empty();
         }
     }
 
-    /**
-     * Creates a map of column name -> converted value. This filters out any
-     * columns not found in tableMetadata, and converts the values via getDBValue.
-     *
-     * @throws IllegalArgumentException if no valid columns remain.
-     */
+    public List<Map<String, Object>> findBy(Criterion criterion) {
+        WhereSql ws = new WhereRenderer(meta).render(criterion);
+        String sql = meta.generateSelectStatement() + " " + ws.sql();
+        return namedJdbc.queryForList(sql, ws.params());
+    }
+
+    // ---------- INSERT ----------
+
+    public int insert(Map<String, Object> rowData) {
+        Map<String, Object> filtered = prepareAndFilterRowData(rowData, true);
+        if (filtered.isEmpty()) throw new IllegalArgumentException("No valid columns to insert.");
+
+        String cols = String.join(", ", filtered.keySet());
+        String params = filtered.keySet().stream().map(k -> ":" + k).collect(Collectors.joining(", "));
+        String sql = "INSERT INTO " + meta.getTableName() + " (" + cols + ") VALUES (" + params + ")";
+        return namedJdbc.update(sql, new MapSqlParameterSource(filtered));
+    }
+
+    // ---------- UPDATE ----------
+
+    public int update(Object pkValue, Map<String, Object> rowData) {
+        // delegate to updateBy on PK criterion
+        return updateBy(Condition.eq(meta.getPrimaryKeyMeta().getName(), pkValue), rowData);
+    }
+
+    /** Bulk/conditional UPDATE using criteria. Returns affected row count. */
+    public int updateBy(Criterion criterion, Map<String, Object> rowData) {
+        Map<String, Object> filtered = prepareAndFilterRowData(rowData, false);
+        filtered.remove(meta.getPrimaryKeyMeta().getName()); // never update PK
+
+        if (filtered.isEmpty()) return 0;
+
+        String set = filtered.keySet().stream()
+                .map(c -> c + " = :" + c)
+                .collect(Collectors.joining(", "));
+
+        WhereSql ws = new WhereRenderer(meta).render(criterion);
+        String sql = "UPDATE " + meta.getTableName() + " SET " + set + " " + ws.sql();
+
+        MapSqlParameterSource ps = new MapSqlParameterSource(filtered);
+        // merge WHERE params last (no name conflicts because SET keys are column names, WHERE are p1,p2,...)
+        ws.params().getValues().forEach(ps::addValue);
+
+        return namedJdbc.update(sql, ps);
+    }
+
+    // ---------- DELETE ----------
+
+    public int delete(Object pkValue) {
+        return deleteBy(Condition.eq(meta.getPrimaryKeyMeta().getName(), pkValue));
+    }
+
+    /** Bulk/conditional DELETE using criteria. */
+    public int deleteBy(Criterion criterion) {
+        WhereSql ws = new WhereRenderer(meta).render(criterion);
+        String sql = "DELETE FROM " + meta.getTableName() + " " + ws.sql();
+        return namedJdbc.update(sql, ws.params());
+    }
+
+    // ---------- UPSERT-ish convenience ----------
+
+    public int save(Object pkValue, Map<String, Object> recordData) {
+        if (pkValue == null || pkValue.toString().isBlank()) return insert(recordData);
+        return update(pkValue, recordData);
+    }
+
+    // ---------- Internals ----------
+
     private Map<String, Object> prepareAndFilterRowData(Map<String, Object> rowData, boolean insert) {
-        // Create a mapping from column name to its metadata for quick lookup
-        Map<String, ColumnMetaData> columnsByName = tableMetadata.getColumns()
-                .stream()
-                .filter(column -> ! column.getDomain().isAutoIncrement() )
-                .collect(Collectors.toMap(org.p2proto.dto.ColumnMetaData::getName, Function.identity()));
+        Map<String, Object> src = (rowData == null) ? new HashMap<>() : new HashMap<>(rowData);
 
-        Map<String, Object> filteredData = new HashMap<>();
-
-        Map<String, Object> defaultData = new HashMap<>();
-        for (Map.Entry<String, ColumnMetaData> entry : columnsByName.entrySet()) {
-            String columnName = entry.getKey();
-            Object rowValue = rowData.get(columnName);
-            ColumnMetaData columnMetaData = entry.getValue();
-            if ((rowValue == null || rowValue.toString().isEmpty()) && columnMetaData.getDefaultValue() != null) { // either null or missing in rowData at all
-                rowValue = getDefaultValue(columnMetaData, insert);
-                if (rowValue != null) {
-                    defaultData.put(columnName, rowValue);
-                }
+        // defaults
+        for (ColumnMetaData c : meta.getColumns()) {
+            if (c.getDomain() != null && c.getDomain().isAutoIncrement()) continue;
+            if (isBlank(src.get(c.getName())) && c.getDefaultValue() != null) {
+                Object def = getDefaultValue(c, insert);
+                if (def != null) src.put(c.getName(), def);
             }
         }
-        Map<String, Object> resultingRowData = new HashMap<>(rowData);
-        resultingRowData.putAll(defaultData);
 
-        for (Map.Entry<String, Object> entry : resultingRowData.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            if (!columnsByName.containsKey(key)) continue;
-            ColumnMetaData meta = columnsByName.get(key);
-            if (meta.getDomain().equals(Domain.PASSWORD) && PASSWORD_MASK.equals(value)) continue;
-            Object dbValue = getDBValue(meta.getDomain(), value);
-            if (dbValue == null) continue;
-            filteredData.put(key, dbValue);
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (ColumnMetaData c : meta.getColumns()) {
+            if (c.getDomain() != null && c.getDomain().isAutoIncrement()) continue;
+            String name = c.getName();
+            if (!src.containsKey(name)) continue;
+
+            Object val = src.get(name);
+
+            if (c.getDomain() == Domain.PASSWORD && PASSWORD_MASK.equals(val)) {
+                continue; // ignore masked password (no change)
+            }
+
+            Object dbv = getDBValue(c.getDomain(), val);
+            // keep explicit nulls to allow clearing fields
+            out.put(name, dbv);
         }
+        return out;
+    }
 
-        if (filteredData.isEmpty()) {
-            throw new IllegalArgumentException("No valid columns found in rowData.");
-        }
-
-        return filteredData;
+    private static boolean isBlank(Object v) {
+        return v == null || (v instanceof String s && s.isBlank());
     }
 
     private Object getDefaultValue(ColumnMetaData meta, boolean insert) {
-        Object result = null;
-        ColumnDefaultHolder defaultValue = meta.getDefaultValue();
-        ColumnDefaultHolder.TriggerEvent triggerEvent = defaultValue.getTriggerEvent();
-        ColumnDefaultHolder.DefaultValueType valueType = defaultValue.getValueType();
-        if ((insert && triggerEvent.equals(ColumnDefaultHolder.TriggerEvent.ON_CREATE)) ||
-           (! insert && triggerEvent.equals(ColumnDefaultHolder.TriggerEvent.ON_UPDATE))) {
-            result = getClientValue(defaultValue.getValue(), valueType, insert);
-        }
-        return result;
+        ColumnDefaultHolder def = meta.getDefaultValue();
+        if (def == null) return null;
+
+        boolean fire = (insert && def.getTriggerEvent() == ColumnDefaultHolder.TriggerEvent.ON_CREATE)
+                || (!insert && def.getTriggerEvent() == ColumnDefaultHolder.TriggerEvent.ON_UPDATE);
+        if (!fire) return null;
+
+        Object raw = switch (def.getValueType()) {
+            case CONSTANT   -> def.getValue();
+            case FORMULA -> resolveExpression(def.getValue());
+        };
+        return getDBValue(meta.getDomain(), raw);
     }
 
-    private Object getClientValue(String value, ColumnDefaultHolder.DefaultValueType valueType, boolean insert) {
-        if (valueType.equals(ColumnDefaultHolder.DefaultValueType.CONSTANT)) return value;
-        if (CURRENT_TIMESTAMP.equals(value)) {
-            return Timestamp.from(Instant.now());
-        }
-        throw new RuntimeException("Unknown formula: " + value );
+    private Object resolveExpression(String expr) {
+        if (CURRENT_TIMESTAMP.equals(expr)) return Timestamp.from(Instant.now());
+        throw new IllegalArgumentException("Unknown expression: " + expr);
     }
 
+    /** Uniform conversion for inserts/updates. */
+    private Object getDBValue(Domain domain, Object value) {
+        if (value == null) return null;
+        if (value instanceof String s && s.isBlank()) return (domain == Domain.TEXT) ? "" : null;
 
-    /**
-     * Inserts a new row. The row data should map column names to their values.
-     * Only columns that exist in TableMetadata will be included in the insert.
-     *
-     * @param rowData A Map of column->value for the new record
-     * @return number of rows affected (should be 1 if successful)
-     */
+        if (domain == null) return value;
 
-    public int insert(Map<String, Object> rowData) {
-        // Reuse the helper method
-        Map<String, Object> filteredData = prepareAndFilterRowData(rowData, true);
-
-        // Build the column list and placeholders for the INSERT statement
-        List<String> columns = new ArrayList<>(filteredData.keySet());
-        String colList = String.join(", ", columns);
-        String placeholders = columns.stream()
-                .map(c -> "?")
-                .collect(Collectors.joining(", "));
-
-        String sql = String.format("INSERT INTO %s (%s) VALUES (%s)",
-                tableMetadata.getTableName(),
-                colList,
-                placeholders);
-
-        // Extract values in the same column order
-        Object[] values = columns.stream()
-                .map(filteredData::get)
-                .toArray();
-
-        return jdbcTemplate.update(sql, values);
-    }
-
-    /**
-     * Updates an existing row identified by the primary key. The row data
-     * should contain column->value pairs for what is to be updated.
-     *
-     * @param pkValue The primary key value (e.g. UUID or Long)
-     * @param rowData The columns/values to update
-     * @return number of rows affected (should be 1 if successful)
-     */
-    public int update(Integer pkValue, Map<String, Object> rowData) {
-        // Reuse the helper method
-        Map<String, Object> filteredData = prepareAndFilterRowData(rowData, false);
-
-        // Build the "SET col = ?" portion
-        List<String> assignments = new ArrayList<>();
-        List<Object> values = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : filteredData.entrySet()) {
-            assignments.add(entry.getKey() + " = ?");
-            values.add(entry.getValue());
-        }
-
-        // Add the PK value at the end
-        values.add(pkValue);
-
-        String setClause = String.join(", ", assignments);
-
-        // Find PK column metadata (assuming 'primaryKeyColumn' is known)
-        ColumnMetaData primaryKeyMeta = tableMetadata.getColumns().stream()
-                .filter(c -> c.getName().equals(primaryKeyColumn))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Primary key column not found!"));
-
-        String sql = String.format("UPDATE %s SET %s WHERE %s",
-                tableMetadata.getTableName(),
-                setClause,
-                primaryKeyMeta.generateWherePart());
-
-        return jdbcTemplate.update(sql, values.toArray());
-    }
-
-    /**
-     * Converts a given raw value to the appropriate type for DB storage.
-     * This logic is shared by both insert() and update().
-     */
-    private Object getDBValue(Domain dataType, Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (Domain.BOOLEAN.equals(dataType)) {
-            // If it's a string, trim and handle empty as null
-            if (value instanceof String) {
-                String strVal = ((String) value).trim();
-                if (strVal.isEmpty()) {
-                    return null;
-                }
-                return Boolean.valueOf(strVal);
+        switch (domain) {
+            case BOOLEAN -> {
+                if (value instanceof Boolean b) return b;
+                return Boolean.valueOf(value.toString().trim());
             }
-            // If it's already a Boolean or something else,
-            // just convert via toString() as a fallback
-            return Boolean.valueOf(value.toString());
-        } else if (Domain.PASSWORD.equals(dataType)) {
-            return BCrypt.hashpw(value.toString(), BCrypt.gensalt(10));
-        } else if (Domain.DATE.equals(dataType) || Domain.DATETIME.equals(dataType)) {
-            if (value instanceof String stringValue) {
-                if (stringValue.isEmpty()) {
-                    value = null;
-                } else {
-                    try {
-                        value = DateFormat.getDateInstance().parse(stringValue);
-                    } catch (ParseException e) {
-                        log.error(e.getLocalizedMessage());
-                        value = null;
-                    }
-                }
+            case PASSWORD -> {
+                return passwordEncoder.encode(value.toString());
             }
-        }
-
-        // For other types, return as-is (or add more cases if needed)
-        return value;
-    }
-
-    /**
-     * Deletes a row identified by the primary key.
-     *
-     * @param pkValue The primary key value
-     * @return number of rows affected (should be 1 if successful)
-     */
-    public int delete(Integer pkValue) {
-        String sql = String.format("DELETE FROM %s WHERE %s = ?",
-                tableMetadata.getTableName(),
-                primaryKeyColumn);
-
-        return jdbcTemplate.update(sql, pkValue);
-    }
-
-    public void save(String idValue, Map<String, Object> recordData) {
-        Integer id = null;
-        if (! (idValue == null || idValue.isEmpty())) {
-            id = Integer.valueOf(idValue);
-        }
-        if (id == null || id.toString().isEmpty() ) {
-            insert(recordData);
-        }
-        else {
-            update(id, recordData);
+            case DATE -> {
+                if (value instanceof java.time.LocalDate d) return d;
+                if (value instanceof java.sql.Date d) return d.toLocalDate();
+                if (value instanceof String s) return java.time.LocalDate.parse(s);
+                return value;
+            }
+            case DATETIME -> {
+                if (value instanceof java.time.OffsetDateTime odt) return odt;
+                if (value instanceof java.time.LocalDateTime ldt) return ldt;
+                if (value instanceof java.time.Instant i) return java.time.OffsetDateTime.ofInstant(i, ZoneOffset.UTC);
+                if (value instanceof java.util.Date d) return java.time.OffsetDateTime.ofInstant(d.toInstant(), ZoneOffset.UTC);
+                if (value instanceof String s) {
+                    try { return java.time.OffsetDateTime.parse(s); }
+                    catch (Exception ignored) { return java.time.LocalDateTime.parse(s); }
+                }
+                return value;
+            }
+            case UUID -> {
+                if (value instanceof java.util.UUID u) return u;
+                return java.util.UUID.fromString(value.toString());
+            }
+            default -> {
+                return value; // INTEGER, FLOAT, TEXT, etc.
+            }
         }
     }
 }
