@@ -1,6 +1,6 @@
 package org.p2proto.sql;
 
-import org.p2proto.ddl.Domain;
+import org.p2proto.domain.DomainType;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.TableMetadata;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -47,7 +47,7 @@ public final class WhereRenderer {
 
     private String renderCondition(Condition c, MapSqlParameterSource ps) {
         ColumnMetaData col = requireColumn(c.column);
-        Domain d = col.getDomain();
+        DomainType d = col.getDomain();
         String name = col.getName(); // add quoting here if needed
 
         if ((c.op == Op.EQ || c.op == Op.NE) && c.value == null) {
@@ -72,7 +72,7 @@ public final class WhereRenderer {
                 if (vals.isEmpty()) return (c.op == Op.IN) ? "1=0" : "1=1";
                 String plist = vals.stream().map(v -> {
                     String p = nextParam();
-                    ps.addValue(p, convert(d, v));
+                ps.addValue(p, convert(d, v));
                     return ":" + p;
                 }).collect(Collectors.joining(", "));
                 return name + ((c.op == Op.IN) ? " IN (" : " NOT IN (") + plist + ")";
@@ -94,7 +94,7 @@ public final class WhereRenderer {
                     case EQ -> "="; case NE -> "<>"; case GT -> ">"; case GE -> ">="; case LT -> "<"; case LE -> "<=";
                     default -> throw new IllegalStateException();
                 };
-                if (d == Domain.UUID) return name + " " + op + " :" + p + "::uuid";
+                if ("UUID".equalsIgnoreCase(d.getInternalName())) return name + " " + op + " :" + p + "::uuid";
                 return name + " " + op + " :" + p;
             }
         }
@@ -116,9 +116,9 @@ public final class WhereRenderer {
         throw new IllegalArgumentException(ctx + " expects a collection");
     }
 
-    private static Object convert(Domain d, Object v) {
+    private static Object convert(DomainType d, Object v) {
         if (v == null) return null;
-        if (d == Domain.UUID && !(v instanceof java.util.UUID)) {
+        if ("UUID".equalsIgnoreCase(d.getInternalName()) && !(v instanceof java.util.UUID)) {
             return java.util.UUID.fromString(v.toString());
         }
         return v;

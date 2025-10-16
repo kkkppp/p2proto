@@ -3,7 +3,7 @@ package org.p2proto.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
-import org.p2proto.ddl.Domain;
+import org.p2proto.domain.DomainType;
 
 import java.util.*;
 import java.util.function.Function;
@@ -117,7 +117,7 @@ public class TableMetadata {
     /** Functional interface for decorating SELECT clause parts. */
     @FunctionalInterface
     public interface SelectDecorator {
-        String decorate(String selectPart, Domain domain);
+        String decorate(String selectPart, DomainType domain);
 
         static SelectDecorator defaultDecorator() {
             // Keep ColumnMetaData’s own select parts as-is.
@@ -128,18 +128,10 @@ public class TableMetadata {
     /** Functional interface for decorating WHERE clause parts. */
     @FunctionalInterface
     public interface WhereDecorator {
-        String decorate(String name, Domain domain);
+        String decorate(String name, DomainType domain);
 
         static WhereDecorator defaultDecorator() {
-            return (name, type) -> {
-                // Note: auto-increment is a property, not its own domain.
-                return switch (type) {
-                    case TEXT, DATE, DATETIME -> name + " = ?";
-                    case UUID -> name + " = ?::uuid";
-                    case INTEGER, FLOAT, BOOLEAN, PASSWORD -> name + " = ?";
-                    default -> name + " = ?"; // fallback for new domains
-                };
-            };
+            return (name, type) -> type.wherePredicate(name);
         }
     }
 

@@ -14,7 +14,7 @@ public class ColumnMetaData {
     private UUID id;
     private final String name;        // Column name
     private final String label;       // Column label
-    private final org.p2proto.ddl.Domain domain;  // Data type
+    private final org.p2proto.domain.DomainType domain;  // Data type
     private final Boolean primaryKey;
     private final Boolean removable;
     private final ColumnDefaultHolder defaultValue;
@@ -22,11 +22,11 @@ public class ColumnMetaData {
     private final TableMetadata.SelectDecorator selectDecorator; // Decorator for generating SELECT parts
     private final TableMetadata.WhereDecorator whereDecorator;   // Decorator for generating WHERE parts
 
-    public ColumnMetaData(String name, String label, org.p2proto.ddl.Domain dataType, ColumnDefaultHolder defaultValue, Map<String, String> additionalProperties) {
+    public ColumnMetaData(String name, String label, org.p2proto.domain.DomainType dataType, ColumnDefaultHolder defaultValue, Map<String, String> additionalProperties) {
         this(null, name, label, dataType, false, false, defaultValue, additionalProperties, TableMetadata.SelectDecorator.defaultDecorator(), TableMetadata.WhereDecorator.defaultDecorator());
     }
 
-    public ColumnMetaData(UUID id, String name, String label, org.p2proto.ddl.Domain dataType, Boolean primaryKey, Boolean removable, ColumnDefaultHolder defaultValue, Map<String, String> additionalProperties) {
+    public ColumnMetaData(UUID id, String name, String label, org.p2proto.domain.DomainType dataType, Boolean primaryKey, Boolean removable, ColumnDefaultHolder defaultValue, Map<String, String> additionalProperties) {
         this(id, name, label, dataType, primaryKey, removable, defaultValue, additionalProperties, TableMetadata.SelectDecorator.defaultDecorator(), TableMetadata.WhereDecorator.defaultDecorator());
     }
 
@@ -43,15 +43,16 @@ public class ColumnMetaData {
         return formField;
     }
 
-    private FieldType mapDataTypeToFieldType(org.p2proto.ddl.Domain domain) {
-        return switch (domain) {
-            case TEXT -> FieldType.TEXT;
-            case DATE -> FieldType.DATE;
-            case DATETIME -> FieldType.DATETIME;
-            case UUID, INTEGER, AUTOINCREMENT -> FieldType.NUMBER;
-            case BOOLEAN -> FieldType.CHECKBOX;
-            case PASSWORD -> FieldType.PASSWORD;
-            default -> throw new IllegalArgumentException("Unsupported data type: " + domain);
+    private FieldType mapDataTypeToFieldType(org.p2proto.domain.DomainType domain) {
+        String name = domain.getInternalName();
+        return switch (name) {
+            case "TEXT" -> FieldType.TEXT;
+            case "DATE" -> FieldType.DATE;
+            case "DATETIME" -> FieldType.DATETIME;
+            case "UUID", "INTEGER", "AUTOINCREMENT" -> FieldType.NUMBER;
+            case "BOOLEAN" -> FieldType.CHECKBOX;
+            case "PASSWORD" -> FieldType.PASSWORD;
+            default -> throw new IllegalArgumentException("Unsupported data type: " + name);
         };
     }
 

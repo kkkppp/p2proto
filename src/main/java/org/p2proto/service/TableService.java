@@ -5,7 +5,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.p2proto.ddl.CreateTableCommand;
 import org.p2proto.ddl.DDLExecutor;
-import org.p2proto.ddl.Domain;
+import org.p2proto.domain.DomainFactory;
+import org.p2proto.domain.DomainType;
 import org.p2proto.dto.ColumnDefaultHolder;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.CurrentUser;
@@ -156,7 +157,7 @@ public class TableService {
                 null,                       // id (component id assigned later)
                 "id",
                 "ID",
-                Domain.AUTOINCREMENT,
+                DomainFactory.fromInternalName("AUTOINCREMENT"),
                 true,                       // primaryKey
                 false,                      // removable
                 null,                       // default
@@ -173,7 +174,7 @@ public class TableService {
         ColumnMetaData createdAtCol = new ColumnMetaData(
                 "created_at",
                 "Created At",
-                Domain.DATETIME,
+                DomainFactory.fromInternalName("DATETIME"),
                 createdAtDef,
                 Map.of()
         );
@@ -188,7 +189,7 @@ public class TableService {
         ColumnMetaData updatedAtCol = new ColumnMetaData(
                 "updated_at",
                 "Updated At",
-                Domain.DATETIME,
+                DomainFactory.fromInternalName("DATETIME"),
                 updatedAtDef,
                 Map.of()
         );
@@ -196,7 +197,7 @@ public class TableService {
         ColumnMetaData summaryCol = new ColumnMetaData(
                 "summary",
                 "Summary",
-                Domain.TEXT,
+                DomainFactory.fromInternalName("TEXT"),
                 null,
                 Map.of()
         );

@@ -2,7 +2,7 @@
 package org.p2proto.repository;
 
 import lombok.extern.slf4j.Slf4j;
-import org.p2proto.ddl.Domain;
+import org.p2proto.domain.DomainType;
 import org.p2proto.dto.ColumnDefaultHolder;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.TableMetadata;
@@ -144,7 +144,7 @@ public class TableMetadataCrudRepository {
 
             Object val = src.get(name);
 
-            if (c.getDomain() == Domain.PASSWORD && PASSWORD_MASK.equals(val)) {
+            if ("PASSWORD".equalsIgnoreCase(c.getDomain().getInternalName()) && PASSWORD_MASK.equals(val)) {
                 continue; // ignore masked password (no change)
             }
 
@@ -180,27 +180,28 @@ public class TableMetadataCrudRepository {
     }
 
     /** Uniform conversion for inserts/updates. */
-    private Object getDBValue(Domain domain, Object value) {
+    private Object getDBValue(DomainType domain, Object value) {
         if (value == null) return null;
-        if (value instanceof String s && s.isBlank()) return (domain == Domain.TEXT) ? "" : null;
+        if (value instanceof String s && s.isBlank()) return ("TEXT".equalsIgnoreCase(domain.getInternalName())) ? "" : null;
 
         if (domain == null) return value;
 
-        switch (domain) {
-            case BOOLEAN -> {
+        String name = domain.getInternalName();
+        switch (name) {
+            case "BOOLEAN" -> {
                 if (value instanceof Boolean b) return b;
                 return Boolean.valueOf(value.toString().trim());
             }
-            case PASSWORD -> {
+            case "PASSWORD" -> {
                 return passwordEncoder.encode(value.toString());
             }
-            case DATE -> {
+            case "DATE" -> {
                 if (value instanceof java.time.LocalDate d) return d;
                 if (value instanceof java.sql.Date d) return d.toLocalDate();
                 if (value instanceof String s) return java.time.LocalDate.parse(s);
                 return value;
             }
-            case DATETIME -> {
+            case "DATETIME" -> {
                 if (value instanceof java.time.OffsetDateTime odt) return odt;
                 if (value instanceof java.time.LocalDateTime ldt) return ldt;
                 if (value instanceof java.time.Instant i) return java.time.OffsetDateTime.ofInstant(i, ZoneOffset.UTC);
@@ -211,7 +212,7 @@ public class TableMetadataCrudRepository {
                 }
                 return value;
             }
-            case UUID -> {
+            case "UUID" -> {
                 if (value instanceof java.util.UUID u) return u;
                 return java.util.UUID.fromString(value.toString());
             }

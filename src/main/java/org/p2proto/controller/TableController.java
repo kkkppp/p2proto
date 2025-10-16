@@ -1,6 +1,6 @@
 package org.p2proto.controller;
 
-import org.p2proto.ddl.Domain;
+import org.p2proto.domain.DomainType;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.TableMetadata;
 import org.p2proto.model.record.FieldType;
@@ -157,7 +157,7 @@ public class TableController {
                     Object v = db.get(f.getName());
 
                     // Mask passwords; stringify dates; otherwise toString or empty
-                    if (meta.getColumnsByName().get(f.getName()).getDomain() == Domain.PASSWORD) {
+                    if ("PASSWORD".equalsIgnoreCase(meta.getColumnsByName().get(f.getName()).getDomain().getInternalName())) {
                         f.setValue(TableMetadataCrudRepository.PASSWORD_MASK);
                     } else if (v instanceof java.time.LocalDate ld) {
                         f.setValue(ld.toString()); // ISO-8601, e.g. 2025-10-05
@@ -185,14 +185,14 @@ public class TableController {
     }
 
     /** Helper: parse primary key by domain. */
-    private Object parsePk(String raw, Domain domain) {
+    private Object parsePk(String raw, DomainType domain) {
         if (raw == null || raw.isBlank()) return null;
         try {
-            return switch (domain) {
-                case UUID -> java.util.UUID.fromString(raw);
-                case INTEGER -> Integer.valueOf(raw);
-                case FLOAT -> Double.valueOf(raw);
-                // AUTOINCREMENT is a property; INTEGER domain usually backs it:
+            String name = domain.getInternalName();
+            return switch (name) {
+                case "UUID" -> java.util.UUID.fromString(raw);
+                case "INTEGER" -> Integer.valueOf(raw);
+                case "FLOAT" -> Double.valueOf(raw);
                 default -> raw; // TEXT, PASSWORD, etc. – treat as string
             };
         } catch (Exception e) {

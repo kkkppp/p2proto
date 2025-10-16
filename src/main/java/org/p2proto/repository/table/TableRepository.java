@@ -3,7 +3,8 @@ package org.p2proto.repository.table;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.p2proto.ddl.Domain;
+import org.p2proto.domain.DomainFactory;
+import org.p2proto.domain.DomainType;
 import org.p2proto.dto.ColumnDefaultHolder;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.TableMetadata;
@@ -139,7 +140,7 @@ public class TableRepository {
             String fieldLabel = (String) row.get("label_text");
 
             int rawDataType = (int) row.get("data_type");
-            Domain domain = Domain.fromCode(rawDataType);
+            DomainType domain = DomainFactory.fromCode(rawDataType);
 
             Boolean primaryKey = getBoolean(row.get("primary_key"));
             Boolean removable  = getBoolean(row.get("removable"));
@@ -248,7 +249,7 @@ public class TableRepository {
                 column.getId(),
                 tableId,
                 column.getName(),
-                column.getDomain().getCode(),
+                column.getDomain().code(),
                 safeBool(column.getRemovable()),
                 safeBool(column.getPrimaryKey()),
                 column.getDomain().isAutoIncrement(),  // auto_generated
