@@ -19,6 +19,11 @@ public sealed interface DomainType permits BaseDomain  {
 	default String wherePredicate(String columnName) {
 		return columnName + " = ?";
 	}
+
+	default Object convertValue(Object value) {
+		return value;
+	}
 }
+
 
 

@@ -3,6 +3,7 @@ package org.p2proto.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
+import lombok.experimental.SuperBuilder;
 import org.p2proto.domain.DomainType;
 
 import java.util.*;
@@ -11,15 +12,10 @@ import java.util.stream.Collectors;
 
 /**
  * Immutable table metadata with cached lookups and optional decorators.
+ * Extends TableSummary to include column information.
  */
 @Getter
-public class TableMetadata {
-
-    private final UUID id;
-    private final String tableName;            // Physical name
-    private final String tableLabel;           // Singular label
-    private final String tablePluralLabel;     // Plural label
-    private final TableTypeEnum tableType;
+public class TableMetadata extends TableSummary {
 
     private final List<ColumnMetaData> columns;               // ordered list for SELECT clause
     private final Map<String, ColumnMetaData> columnsByName;  // cached lookup by exact name
@@ -35,11 +31,7 @@ public class TableMetadata {
             @Singular("column") List<ColumnMetaData> columns,
             ColumnMetaData primaryKeyMeta
     ) {
-        this.id = id;
-        this.tableName = Objects.requireNonNull(tableName, "tableName");
-        this.tableLabel = tableLabel;
-        this.tablePluralLabel = tablePluralLabel;
-        this.tableType = (tableType == null ? TableTypeEnum.STANDARD : tableType);
+        super(id, tableName, tableLabel, tablePluralLabel, tableType);
         this.columns = List.copyOf(Objects.requireNonNullElse(columns, List.of()));
 
         this.columnsByName = this.columns.stream()
@@ -76,7 +68,7 @@ public class TableMetadata {
         String cols = columns.stream()
                 .map(c -> decorator.decorate(c.generateSelectPart(), c.getDomain()))
                 .collect(Collectors.joining(", "));
-        return "SELECT " + cols + " FROM " + tableName;
+        return "SELECT " + cols + " FROM " + getTableName();
     }
 
     /**
@@ -146,9 +138,5 @@ public class TableMetadata {
         }
         public String sql() { return sql; }
         public List<Object> args() { return args; }
-    }
-
-    public enum TableTypeEnum {
-        STANDARD, USERS, ACCESS
     }
 }

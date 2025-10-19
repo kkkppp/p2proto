@@ -10,8 +10,6 @@ import org.p2proto.repository.TableMetadataCrudRepository;
 import org.p2proto.repository.table.TableRepository;
 import org.p2proto.service.TableService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -27,13 +25,11 @@ public class TableController {
     private final TableService tableService;
     private final TableRepository tableRepository;
     private final HttpServletRequest request;
-    private final PasswordEncoder passwordEncoder;
 
-    public TableController(TableService tableService, TableRepository tableRepository, HttpServletRequest request, PasswordEncoder passwordEncoder) {
+    public TableController(TableService tableService, TableRepository tableRepository, HttpServletRequest request) {
         this.tableService = tableService;
         this.tableRepository = tableRepository;
         this.request = request;
-        this.passwordEncoder = passwordEncoder;
     }
 
     private Map<String, Object> buildTableData(String tableName, List<String> fieldsToRender) {
@@ -47,7 +43,7 @@ public class TableController {
                 .collect(Collectors.toList());
 
         // Retrieve all rows from the CRUD repository
-        TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, passwordEncoder);
+        TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata);
         List<Map<String, Object>> records = repo.findAll();
 
         // Determine which fields to render: if none provided, render all columns
@@ -145,9 +141,9 @@ public class TableController {
 
         // Populate values when editing
         if (recordId != null && !recordId.isBlank()) {
-            // NEW: repo ctor now takes (JdbcTemplate, TableMetadata, PasswordEncoder)
+            // NEW: repo ctor now takes (JdbcTemplate, TableMetadata)
             TableMetadataCrudRepository repo =
-                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), meta, passwordEncoder);
+                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), meta);
 
             // NEW: parse PK according to its domain
             Object pkValue = parsePk(recordId, meta.getPrimaryKeyMeta().getDomain());
@@ -247,7 +243,7 @@ public class TableController {
             TableMetadata tableMetadata = tableRepository.findByID(tableID);
 
             // Initialize the repository
-            TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, passwordEncoder);
+            TableMetadataCrudRepository repo = new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata);
 
             // Convert RecordForm to a Map<String, Object> for saving
             Map<String, Object> recordData = record.getFields().stream()
@@ -287,7 +283,7 @@ public class TableController {
 
             // 2. Initialize repository
             TableMetadataCrudRepository repo =
-                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata, passwordEncoder);
+                    new TableMetadataCrudRepository(tableService.getJdbcTemplate(), tableMetadata);
 
             // 3. Perform the delete
             repo.delete(Integer.valueOf(id));

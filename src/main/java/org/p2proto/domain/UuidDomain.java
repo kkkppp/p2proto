@@ -11,6 +11,14 @@ public final class UuidDomain extends BaseDomain {
 	public String wherePredicate(String columnName) {
 		return columnName + " = ?::uuid";
 	}
+
+	@Override
+	public Object convertValue(Object value) {
+		if (value == null) return null;
+		if (value instanceof java.util.UUID u) return u;
+		return java.util.UUID.fromString(value.toString());
+	}
 }
+
 
 

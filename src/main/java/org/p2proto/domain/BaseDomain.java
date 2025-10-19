@@ -26,3 +26,4 @@ abstract sealed class BaseDomain implements DomainType permits AutoIncrementDoma
 }
 
 
+

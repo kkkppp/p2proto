@@ -2,6 +2,7 @@ package org.p2proto.controller;
 
 import org.p2proto.dto.CurrentUser;
 import org.p2proto.dto.TableMetadata;
+import org.p2proto.dto.TableSummary;
 import org.p2proto.model.MenuItem;
 import org.p2proto.repository.table.TableRepository;
 import org.p2proto.service.UserService;
@@ -36,7 +37,7 @@ public class GlobalControllerAdvice {
 
         List<MenuItem> tableItems = new ArrayList<>();
         tableItems.add(new MenuItem("Manage Users", "/table/users?fields=username,email,first_name,last_name"));
-        for (TableMetadata table : tableRepository.findAllWithLabels()) {
+        for (TableSummary table : tableRepository.findAllWithLabels()) {
             if (table.getTableType().equals(TableMetadata.TableTypeEnum.STANDARD)) {
                 tableItems.add(new MenuItem(table.getTablePluralLabel(), "/table/" + table.getTableName()));
             }

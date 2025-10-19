@@ -11,7 +11,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.sql.Timestamp;
 import java.time.*;
@@ -27,14 +26,11 @@ public class TableMetadataCrudRepository {
 
     private final NamedParameterJdbcTemplate namedJdbc;
     private final TableMetadata meta;
-    private final PasswordEncoder passwordEncoder;
 
     public TableMetadataCrudRepository(JdbcTemplate jdbcTemplate,
-                                       TableMetadata tableMetadata,
-                                       PasswordEncoder passwordEncoder) {
+                                       TableMetadata tableMetadata) {
         this.namedJdbc = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.meta = Objects.requireNonNull(tableMetadata, "tableMetadata");
-        this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
     }
 
     // ---------- READ ----------
@@ -186,39 +182,7 @@ public class TableMetadataCrudRepository {
 
         if (domain == null) return value;
 
-        String name = domain.getInternalName();
-        switch (name) {
-            case "BOOLEAN" -> {
-                if (value instanceof Boolean b) return b;
-                return Boolean.valueOf(value.toString().trim());
-            }
-            case "PASSWORD" -> {
-                return passwordEncoder.encode(value.toString());
-            }
-            case "DATE" -> {
-                if (value instanceof java.time.LocalDate d) return d;
-                if (value instanceof java.sql.Date d) return d.toLocalDate();
-                if (value instanceof String s) return java.time.LocalDate.parse(s);
-                return value;
-            }
-            case "DATETIME" -> {
-                if (value instanceof java.time.OffsetDateTime odt) return odt;
-                if (value instanceof java.time.LocalDateTime ldt) return ldt;
-                if (value instanceof java.time.Instant i) return java.time.OffsetDateTime.ofInstant(i, ZoneOffset.UTC);
-                if (value instanceof java.util.Date d) return java.time.OffsetDateTime.ofInstant(d.toInstant(), ZoneOffset.UTC);
-                if (value instanceof String s) {
-                    try { return java.time.OffsetDateTime.parse(s); }
-                    catch (Exception ignored) { return java.time.LocalDateTime.parse(s); }
-                }
-                return value;
-            }
-            case "UUID" -> {
-                if (value instanceof java.util.UUID u) return u;
-                return java.util.UUID.fromString(value.toString());
-            }
-            default -> {
-                return value; // INTEGER, FLOAT, TEXT, etc.
-            }
-        }
+        // Use domain's convertValue method for type-specific conversion
+        return domain.convertValue(value);
     }
 }

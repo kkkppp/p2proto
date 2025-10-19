@@ -8,6 +8,7 @@ import org.p2proto.domain.DomainType;
 import org.p2proto.dto.ColumnDefaultHolder;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.TableMetadata;
+import org.p2proto.dto.TableSummary;
 import org.postgresql.util.PGobject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -81,18 +82,18 @@ public class TableRepository {
      * Loads table list with labels (DEFAULT_LANGUAGE), sorted by plural label.
      */
     @Cacheable(cacheNames = "tables", key = "'allTablesOrderedByPluralLabel'")
-    public List<TableMetadata> findAllWithLabels() {
+    public List<TableSummary> findAllWithLabels() {
         List<Map<String, Object>> rows =
                 jdbcTemplate.queryForList(ALL_TABLES_WITH_LABELS_QUERY, DEFAULT_LANGUAGE, DEFAULT_LANGUAGE);
 
         if (rows.isEmpty()) return List.of();
 
-        List<TableMetadata> results = new ArrayList<>(rows.size());
+        List<TableSummary> results = new ArrayList<>(rows.size());
         for (Map<String, Object> row : rows) {
             UUID tableId = (UUID) row.get("table_id");
             String logicalName = (String) row.get("logical_name");
-            TableMetadata.TableTypeEnum tableType =
-                    TableMetadata.TableTypeEnum.valueOf(String.valueOf(row.get("type")));
+            TableSummary.TableTypeEnum tableType =
+                    TableSummary.TableTypeEnum.valueOf(String.valueOf(row.get("type")));
 
             String label = (String) row.get("label");
             String plural = (String) row.get("plural_label");
@@ -100,18 +101,16 @@ public class TableRepository {
             String tableLabel = (label != null) ? label : logicalName;
             String tablePluralLabel = (plural != null) ? plural : tableLabel + "s";
 
-            results.add(TableMetadata.builder()
+            results.add(TableSummary.summaryBuilder()
                     .id(tableId)
                     .tableName(logicalName)
                     .tableLabel(tableLabel)
                     .tablePluralLabel(tablePluralLabel)
                     .tableType(tableType)
-                    .columns(List.of())          // not loading fields here
-                    .primaryKeyMeta(null)        // not known in this lightweight call
                     .build());
         }
 
-        results.sort(Comparator.comparing(TableMetadata::getTablePluralLabel));
+        results.sort(Comparator.comparing(TableSummary::getTablePluralLabel));
         return results;
     }
 
@@ -120,8 +119,8 @@ public class TableRepository {
         // 1) table info
         Map<String, Object> tableRow = jdbcTemplate.queryForMap(TABLE_QUERY, tableId);
         String logicalName = (String) tableRow.get("logical_name");
-        TableMetadata.TableTypeEnum tableType =
-                TableMetadata.TableTypeEnum.valueOf(String.valueOf(tableRow.get("type")));
+        TableSummary.TableTypeEnum tableType =
+                TableSummary.TableTypeEnum.valueOf(String.valueOf(tableRow.get("type")));
 
         // 2) labels
         Map<String, Object> labelRow =

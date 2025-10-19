@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.dto.CurrentUser;
 import org.p2proto.dto.TableMetadata;
+import org.p2proto.dto.TableSummary;
 import org.p2proto.repository.table.TableRepository;
 import org.p2proto.service.TableService;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class TableSetupController {
 
     @GetMapping("")
     public String listTables(Model model) {
-        List<TableMetadata> metadataList = tableRepository.findAllWithLabels();
+        List<TableSummary> metadataList = tableRepository.findAllWithLabels();
         model.addAttribute("metadataList", metadataList);
         return "tableSetup/list";
     }
