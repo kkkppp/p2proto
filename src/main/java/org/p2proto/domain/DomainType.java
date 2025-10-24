@@ -16,6 +16,10 @@ public sealed interface DomainType permits BaseDomain  {
 		return messageSource.getMessage(resourceId(), null, locale);
 	}
 
+	default String selectPredicate(String columnName) {
+		return columnName;
+	}
+
 	default String wherePredicate(String columnName) {
 		return columnName + " = ?";
 	}

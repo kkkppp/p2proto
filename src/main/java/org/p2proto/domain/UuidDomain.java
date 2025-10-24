@@ -4,7 +4,7 @@ public final class UuidDomain extends BaseDomain {
 	public static final UuidDomain INSTANCE = new UuidDomain();
 
 	private UuidDomain() {
-		super(1, "UUID", "label.domain.uuid", "UUID", false, false);
+		super(1, "UUID", "label.domain.uuid", "UUID", true, false);
 	}
 
 	@Override

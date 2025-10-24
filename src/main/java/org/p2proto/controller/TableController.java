@@ -188,6 +188,7 @@ public class TableController {
             return switch (name) {
                 case "UUID" -> java.util.UUID.fromString(raw);
                 case "INTEGER" -> Integer.valueOf(raw);
+                case "AUTOINCREMENT" -> Integer.valueOf(raw);
                 case "FLOAT" -> Double.valueOf(raw);
                 default -> raw; // TEXT, PASSWORD, etc. – treat as string
             };
@@ -219,7 +220,7 @@ public class TableController {
             @PathVariable("tableName") String tableName,
             @ModelAttribute RecordForm record,
             BindingResult result,
-            String id) {
+            String recordId) {
 
         Map<String, String> response = new HashMap<>();
 
@@ -249,8 +250,9 @@ public class TableController {
             Map<String, Object> recordData = record.getFields().stream()
                     .collect(Collectors.toMap(FormField::getName, f -> Objects.requireNonNullElse(f.getValue(), "") ));
 
-            // Save the record (assuming 'id' is auto-generated
-            repo.save(id, recordData);
+            // Save the record (assuming 'recordId' is auto-generated
+            Object pkValue = parsePk(recordId, tableMetadata.getPrimaryKeyMeta().getDomain());
+            repo.save(pkValue, recordData);
         } catch (Exception e) {
             // Handle exceptions (e.g., log the error)
             e.printStackTrace();

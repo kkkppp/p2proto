@@ -19,15 +19,9 @@ public class ColumnMetaData {
     private final Boolean removable;
     private final ColumnDefaultHolder defaultValue;
     private final Map<String, String> additionalProperties; // Additional properties
-    private final TableMetadata.SelectDecorator selectDecorator; // Decorator for generating SELECT parts
-    private final TableMetadata.WhereDecorator whereDecorator;   // Decorator for generating WHERE parts
 
     public ColumnMetaData(String name, String label, org.p2proto.domain.DomainType dataType, ColumnDefaultHolder defaultValue, Map<String, String> additionalProperties) {
-        this(null, name, label, dataType, false, false, defaultValue, additionalProperties, TableMetadata.SelectDecorator.defaultDecorator(), TableMetadata.WhereDecorator.defaultDecorator());
-    }
-
-    public ColumnMetaData(UUID id, String name, String label, org.p2proto.domain.DomainType dataType, Boolean primaryKey, Boolean removable, ColumnDefaultHolder defaultValue, Map<String, String> additionalProperties) {
-        this(id, name, label, dataType, primaryKey, removable, defaultValue, additionalProperties, TableMetadata.SelectDecorator.defaultDecorator(), TableMetadata.WhereDecorator.defaultDecorator());
+        this(null, name, label, dataType, false, false, defaultValue, additionalProperties);
     }
 
     /**
@@ -60,7 +54,7 @@ public class ColumnMetaData {
      * Generates the part of the SELECT clause for this column.
      */
     public String generateSelectPart() {
-        return selectDecorator.decorate(name, domain);
+        return domain.selectPredicate(name);
     }
 
     /**
@@ -69,6 +63,6 @@ public class ColumnMetaData {
      * @return The WHERE clause part with a placeholder.
      */
     public String generateWherePart() {
-        return whereDecorator.decorate(name, domain);
+        return domain.wherePredicate(name);
     }
 }

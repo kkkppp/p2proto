@@ -109,9 +109,7 @@ public class TableService {
                             c.getPrimaryKey(),
                             c.getRemovable(),
                             c.getDefaultValue(),
-                            c.getAdditionalProperties(),
-                            c.getSelectDecorator(),
-                            c.getWhereDecorator()
+                            c.getAdditionalProperties()
                     ))
                     .collect(Collectors.toUnmodifiableList());
 

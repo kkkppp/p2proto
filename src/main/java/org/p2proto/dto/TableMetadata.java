@@ -3,7 +3,6 @@ package org.p2proto.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
-import lombok.experimental.SuperBuilder;
 import org.p2proto.domain.DomainType;
 
 import java.util.*;
@@ -60,30 +59,17 @@ public class TableMetadata extends TableSummary {
 
     /** SELECT generator using column-provided projections. */
     public String generateSelectStatement() {
-        return generateSelectStatement(SelectDecorator.defaultDecorator());
-    }
-
-    /** SELECT generator with a decorator (e.g., add casts, COALESCE, JSON operators). */
-    public String generateSelectStatement(SelectDecorator decorator) {
         String cols = columns.stream()
-                .map(c -> decorator.decorate(c.generateSelectPart(), c.getDomain()))
+                .map(c -> c.generateSelectPart())
                 .collect(Collectors.joining(", "));
         return "SELECT " + cols + " FROM " + getTableName();
-    }
-
-    /**
-     * Build a WHERE clause and ordered args using default decoration.
-     * Note: returns empty string and empty list if conditions is empty.
-     */
-    public Where buildWhere(Map<String, Object> conditions) {
-        return buildWhere(conditions, WhereDecorator.defaultDecorator());
     }
 
     /**
      * Build a WHERE clause and ordered args using the provided decorator.
      * The order of args follows iteration order of the input map.
      */
-    public Where buildWhere(Map<String, Object> conditions, WhereDecorator decorator) {
+    public Where buildWhere(Map<String, Object> conditions) {
         if (conditions == null || conditions.isEmpty()) {
             return new Where("", List.of());
         }
@@ -95,36 +81,10 @@ public class TableMetadata extends TableSummary {
                         throw new IllegalArgumentException("Column not found: " + entry.getKey());
                     }
                     args.add(entry.getValue());
-                    return decorator.decorate(column.getName(), column.getDomain());
+                    return column.generateWherePart();
                 })
                 .collect(Collectors.joining(" AND ", "WHERE ", ""));
         return new Where(where, Collections.unmodifiableList(args));
-    }
-
-    /** Exposed PK where fragment (usually "pk = ?" or "pk = ?::uuid"). */
-    public String generatePrimaryKeyWhere() {
-        return primaryKeyMeta.generateWherePart();
-    }
-
-    /** Functional interface for decorating SELECT clause parts. */
-    @FunctionalInterface
-    public interface SelectDecorator {
-        String decorate(String selectPart, DomainType domain);
-
-        static SelectDecorator defaultDecorator() {
-            // Keep ColumnMetaData’s own select parts as-is.
-            return (selectPart, domain) -> selectPart;
-        }
-    }
-
-    /** Functional interface for decorating WHERE clause parts. */
-    @FunctionalInterface
-    public interface WhereDecorator {
-        String decorate(String name, DomainType domain);
-
-        static WhereDecorator defaultDecorator() {
-            return (name, type) -> type.wherePredicate(name);
-        }
     }
 
     /** Simple tuple for WHERE SQL + ordered args. */
