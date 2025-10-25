@@ -37,24 +37,10 @@ public class TableMetadata extends TableSummary {
                 .collect(Collectors.toUnmodifiableMap(ColumnMetaData::getName, Function.identity(), (a, b) -> a));
 
         // If pk not explicitly provided, try to infer by looking for a column marked as auto-increment OR named "id"
-        this.primaryKeyMeta = Objects.requireNonNullElseGet(
-                primaryKeyMeta,
-                () -> inferPrimaryKey(this.columns)
-        );
+        this.primaryKeyMeta = primaryKeyMeta;
         if (!this.columnsByName.containsKey(this.primaryKeyMeta.getName())) {
             throw new IllegalArgumentException("primaryKeyMeta column must be present in columns list: " + this.primaryKeyMeta.getName());
         }
-    }
-
-    private static ColumnMetaData inferPrimaryKey(List<ColumnMetaData> cols) {
-        return cols.stream()
-                .filter(c -> c.getDomain() != null && c.getDomain().isAutoIncrement())
-                .findFirst()
-                .orElseGet(() ->
-                        cols.stream().filter(c -> "id".equalsIgnoreCase(c.getName()))
-                                .findFirst()
-                                .orElseThrow(() -> new IllegalArgumentException("primaryKeyMeta not provided and cannot be inferred")))
-                ;
     }
 
     /** SELECT generator using column-provided projections. */
