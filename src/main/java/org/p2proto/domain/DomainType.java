@@ -1,5 +1,6 @@
 package org.p2proto.domain;
 
+import org.p2proto.dto.ColumnMetaData;
 import org.springframework.context.MessageSource;
 
 import java.util.Locale;
@@ -16,8 +17,8 @@ public sealed interface DomainType permits BaseDomain  {
 		return messageSource.getMessage(resourceId(), null, locale);
 	}
 
-	default String selectPredicate(String columnName) {
-		return columnName;
+	default String selectPredicate(ColumnMetaData meta) {
+		return meta.getName();
 	}
 
 	default String wherePredicate(String columnName) {

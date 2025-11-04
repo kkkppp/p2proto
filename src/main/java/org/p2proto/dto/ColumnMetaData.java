@@ -54,7 +54,7 @@ public class ColumnMetaData {
      * Generates the part of the SELECT clause for this column.
      */
     public String generateSelectPart() {
-        return domain.selectPredicate(name);
+        return domain.selectPredicate(this);
     }
 
     /**

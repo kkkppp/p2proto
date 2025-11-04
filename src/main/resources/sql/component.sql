@@ -119,7 +119,7 @@ CREATE TYPE relation_type as ENUM (
 CREATE TABLE component_relation (
     parent_id UUID not null NOT NULL REFERENCES components (id),
     child_id UUID not null NOT NULL REFERENCES components (id),
-    relation_type relation_type nut null,
+    relation_type relation_type not null,
     UNIQUE (parent_id, child_id, relation_type)
 );
 

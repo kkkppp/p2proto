@@ -36,7 +36,7 @@ public class GlobalControllerAdvice {
         ));
 
         List<MenuItem> tableItems = new ArrayList<>();
-        tableItems.add(new MenuItem("Manage Users", "/table/users?fields=username,email,first_name,last_name"));
+        tableItems.add(new MenuItem("Manage Users", "/table/users?fields=username,email,first_name,last_name,full_name"));
         for (TableSummary table : tableRepository.findAllWithLabels()) {
             if (table.getTableType().equals(TableMetadata.TableTypeEnum.STANDARD)) {
                 tableItems.add(new MenuItem(table.getTablePluralLabel(), "/table/" + table.getTableName()));

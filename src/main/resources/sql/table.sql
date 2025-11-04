@@ -34,7 +34,8 @@ CREATE TEMP TABLE temp_fields (
         primary_key BOOLEAN,
         auto_generated BOOLEAN,
         label_singular_en TEXT,
-        label_singular_es TEXT
+        label_singular_es TEXT,
+        properties JSONB
     ) ON COMMIT DROP;
 
 INSERT INTO temp_fields
@@ -50,6 +51,11 @@ VALUES
     (8, 'email_verified', 3, false, false, 'Email Verified', 'Correo verificado'),
     (9, 'enabled',        3, false, false, 'Enabled',        'Habilitado');
 
+INSERT INTO temp_fields
+(field_order, field_name, data_type, primary_key, auto_generated, label_singular_en, label_singular_es, properties)
+VALUES
+    (10, 'full_name', 10, false,  false,  'Full Name', 'Nombre completo', '{"formuladomain.formulakey": "first_name || '' '' || last_name"}'::jsonb);
+
 -- 5) loop fields
 FOR rec IN SELECT * FROM temp_fields ORDER BY field_order LOOP
            -- a) field component
@@ -58,8 +64,8 @@ FOR rec IN SELECT * FROM temp_fields ORDER BY field_order LOOP
                RETURNING id INTO field_comp_id;
 
 -- b) field row
-INSERT INTO fields (id, table_id, data_type, name, primary_key, auto_generated, removable)
-VALUES (field_comp_id, table_comp_id, rec.data_type, rec.field_name, rec.primary_key, rec.auto_generated, false);
+INSERT INTO fields (id, table_id, data_type, name, primary_key, auto_generated, removable, properties)
+VALUES (field_comp_id, table_comp_id, rec.data_type, rec.field_name, rec.primary_key, rec.auto_generated, false, rec.properties);
 
 -- c) set NLS in one shot
 UPDATE components
