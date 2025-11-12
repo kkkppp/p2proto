@@ -8,6 +8,7 @@ import org.p2proto.dto.TableSummary;
 import org.p2proto.repository.table.TableRepository;
 import org.p2proto.service.TableService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +31,19 @@ public class TableSetupController {
         this.tableRepository = tableRepository;
     }
 
+    // list tables as JSON (used by TableSetupListLoader)
+    @GetMapping(value = "/api", produces = "application/json")
+    @ResponseBody
+    public List<TableSummary> listTablesJson() {
+        return tableRepository.findAllWithLabels();
+    }
+
+    // fetch a single table for edit (optional, if you want a loader)
+    @GetMapping(value = "/api/{id}", produces = "application/json")
+    @ResponseBody
+    public TableMetadata getTableJson(@PathVariable("id") UUID id) {
+        return tableRepository.findByID(id);
+    }
     @GetMapping("")
     public String listTables(Model model) {
         List<TableSummary> metadataList = tableRepository.findAllWithLabels();
