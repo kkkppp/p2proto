@@ -12,6 +12,7 @@ buildscript {
 
 apply plugin: 'java'
 apply plugin: 'war'
+apply plugin: 'antlr'
 apply plugin: 'com.bmuschko.cargo'
 
 group 'org.p2proto'
@@ -25,6 +26,10 @@ repositories {
 }
 
 dependencies {
+    // --- ANTLR4 ---
+    antlr 'org.antlr:antlr4:4.13.1'                 // generator
+    implementation 'org.antlr:antlr4-runtime:4.13.1' // runtime
+
     // Spring Framework
     implementation 'org.springframework:spring-context:5.3.29'
     implementation 'org.springframework:spring-webmvc:5.3.29'
@@ -101,6 +106,30 @@ dependencies {
     }
 }
 
+/* ---- ANTLR configuration ----
+ * Grammar location: src/main/antlr4/org/p2proto/formula/Formula.g4
+ */
+
+// Include generated sources in main Java source set
+sourceSets {
+    main {
+        java {
+            srcDir 'build/generated-src/antlr/main'
+        }
+    }
+}
+
+// Configure ANTLR generation output + arguments
+tasks.generateGrammarSource {
+    // these two lines REPLACE the old `antlr { ... }` block
+    arguments += ['-visitor', '-package', 'org.p2proto.formula.parser']
+    outputDirectory = file('build/generated-src/antlr/main/org/p2proto/formula/parser')
+}
+
+// Make sure grammar is generated before compiling Java
+compileJava.dependsOn tasks.generateGrammarSource
+
+/* ---------- React build + WAR packaging ---------- */
 task buildReact(type: Exec) {
     workingDir 'src/main/frontend'
 
