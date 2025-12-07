@@ -77,8 +77,9 @@ dependencies {
     // JSON Processing
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
 
-    // Testing
-    testImplementation 'junit:junit:4.13.2'
+    // ===== Testing: JUnit 5 + Mockito =====
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.0'
+    testRuntimeOnly  'org.junit.jupiter:junit-jupiter-engine:5.11.0'
     testImplementation 'org.mockito:mockito-core:4.11.0'
 
     // SLF4J API
@@ -121,7 +122,6 @@ sourceSets {
 
 // Configure ANTLR generation output + arguments
 tasks.generateGrammarSource {
-    // these two lines REPLACE the old `antlr { ... }` block
     arguments += ['-visitor', '-package', 'org.p2proto.formula.parser']
     outputDirectory = file('build/generated-src/antlr/main/org/p2proto/formula/parser')
 }
@@ -138,13 +138,11 @@ task buildReact(type: Exec) {
     commandLine npmBin, 'run', 'build'
 
     inputs.dir file('src/main/frontend')
-
     outputs.dir file('src/main/frontend/dist')
 }
 war {
     dependsOn buildReact
     archiveFileName = 'p2proto.war'
-    // Copy all files from the React build output into the "static" folder in the WAR.
     from('src/main/frontend/dist') {
         into 'WEB-INF/classes/static'
     }
