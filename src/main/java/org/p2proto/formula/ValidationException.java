@@ -1,5 +1,5 @@
 package org.p2proto.formula;
 
-public class ValidationException extends Exception {
+public class ValidationException extends RuntimeException {
     public ValidationException(String message) { super(message); }
 }
