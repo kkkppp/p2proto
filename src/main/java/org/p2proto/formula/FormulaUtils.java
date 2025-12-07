@@ -7,7 +7,8 @@ import org.p2proto.dto.ColumnMetaData;
 import org.p2proto.formula.parser.FormulaLexer;
 import org.p2proto.formula.parser.FormulaParser;
 
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -21,11 +22,8 @@ public final class FormulaUtils {
 
     /**
      * Validate a single formula string against the given table metadata.
-     * <ul>
-     *   <li>All referenced variables must match existing column names.</li>
-     *   <li>Function names/arity must match what FormulaSqlVisitor enforces (concat/upper/lower/substring/...)</li>
-     *   <li>Syntax must be valid according to Formula.g4.</li>
-     * </ul>
+     * Same semantics as before, but delegates to
+     * {@link #validateFormulaAndExtractColumns(String, TableMetadata)} and ignores the result.
      *
      * @param formula       formula text, e.g. "concat($first_name, ' ', upper($last_name))"
      * @param tableMetadata table metadata containing allowed columns
@@ -33,16 +31,47 @@ public final class FormulaUtils {
      */
     public static void validateFormula(String formula,
                                        TableMetadata tableMetadata) throws ValidationException {
+        validateFormulaAndExtractColumns(formula, tableMetadata);
+    }
+
+    /**
+     * Validate a single formula string against the given table metadata and
+     * return the set of referenced columns.
+     *
+     * <ul>
+     *   <li>All referenced variables must match existing column names.</li>
+     *   <li>Function names/arity must match what {@link FormulaSqlVisitor} enforces.</li>
+     *   <li>Syntax must be valid according to Formula.g4.</li>
+     * </ul>
+     *
+     * @param formula       formula text, e.g. "concat($first_name, ' ', upper($last_name))"
+     * @param tableMetadata table metadata containing allowed columns
+     * @return ordered set of referenced ColumnMetaData (order of first appearance in the formula)
+     * @throws ValidationException if syntax, variable names, or function usage is invalid
+     */
+    public static Set<ColumnMetaData> validateFormulaAndExtractColumns(String formula,
+                                                                       TableMetadata tableMetadata)
+            throws ValidationException {
 
         // Treat null/blank as "no formula" – change if you want to forbid empty
         if (formula == null || formula.isBlank()) {
-            return;
+            return Collections.emptySet();
         }
 
         // 1) Collect allowed variable names from table metadata (column names)
-        Set<String> allowedVariables = tableMetadata.getColumns().stream()
+        List<ColumnMetaData> columns = tableMetadata.getColumns();
+        Set<String> allowedVariables = columns.stream()
                 .map(ColumnMetaData::getName)
                 .collect(Collectors.toUnmodifiableSet());
+
+        // Also build a lookup map name -> ColumnMetaData so we can map back later
+        Map<String, ColumnMetaData> columnsByName = columns.stream()
+                .collect(Collectors.toMap(
+                        ColumnMetaData::getName,
+                        Function.identity(),
+                        (a, b) -> a,
+                        LinkedHashMap::new // preserve insertion order
+                ));
 
         try {
             // 2) Setup ANTLR lexer/parser
@@ -51,7 +80,7 @@ public final class FormulaUtils {
             CommonTokenStream tokens = new CommonTokenStream(lexer);
             FormulaParser parser = new FormulaParser(tokens);
 
-            // 2a) Convert parse errors into FormulaValidationException instead of printing to stderr
+            // 2a) Convert parse errors into ValidationException instead of printing to stderr
             parser.removeErrorListeners();
             parser.addErrorListener(new BaseErrorListener() {
                 @Override
@@ -75,10 +104,28 @@ public final class FormulaUtils {
             FormulaSqlVisitor visitor = new FormulaSqlVisitor(allowedVariables, true);
             visitor.visit(tree);
 
+            // 5) Extract referenced variable names from the visitor and map to ColumnMetaData
+            Set<String> referencedNames = visitor.getReferencedVariables();
+
+            // Preserve formula-order of referenced variables (visitor should use LinkedHashSet)
+            Set<ColumnMetaData> referencedColumns = new LinkedHashSet<>();
+            for (String name : referencedNames) {
+                ColumnMetaData col = columnsByName.get(name);
+                if (col == null) {
+                    // This should not happen if visitor validated variables correctly,
+                    // but guard anyway.
+                    throw new ValidationException("Referenced variable $" + name +
+                            " not found in table metadata columns");
+                }
+                referencedColumns.add(col);
+            }
+
+            return Collections.unmodifiableSet(referencedColumns);
+
         } catch (RuntimeException ex) {
             // If syntax error or any other RuntimeException:
             String msg = "Invalid formula '" + formula + "': " + ex.getMessage();
-            throw new ValidationException(ex.getMessage());
+            throw new ValidationException(msg, ex);
         }
     }
 }

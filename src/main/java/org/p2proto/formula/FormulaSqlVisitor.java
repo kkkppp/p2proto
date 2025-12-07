@@ -1,5 +1,7 @@
 package org.p2proto.formula;
 
+import org.p2proto.formula.functions.FunctionRegistry;
+import org.p2proto.formula.functions.FunctionSignature;
 import org.p2proto.formula.parser.FormulaBaseVisitor;
 import org.p2proto.formula.parser.FormulaParser;
 
@@ -14,9 +16,17 @@ public class FormulaSqlVisitor extends FormulaBaseVisitor<String> {
     private final Set<String> allowedVariables;
     private final boolean useConcatFunction; // true -> concat(a,b,c); false -> a || b || c
 
+    // track all referenced variables in order of first appearance
+    private final Set<String> referencedVariables = new LinkedHashSet<>();
+
     public FormulaSqlVisitor(Set<String> allowedVariables, boolean useConcatFunction) {
         this.allowedVariables = Objects.requireNonNull(allowedVariables);
         this.useConcatFunction = useConcatFunction;
+    }
+
+    /** Expose referenced variable names (without the '$' prefix). */
+    public Set<String> getReferencedVariables() {
+        return Collections.unmodifiableSet(referencedVariables);
     }
 
     @Override
@@ -25,33 +35,57 @@ public class FormulaSqlVisitor extends FormulaBaseVisitor<String> {
     }
 
     @Override
-    public String visitFunctionCall(FormulaParser.FunctionCallContext ctx) throws ValidationException {
-        String fn = ctx.IDENT().getText();
-        if (!"concat".equalsIgnoreCase(fn)) {
-            throw new ValidationException("Unsupported function: " + fn + ". Only concat(...) is allowed.");
+    public String visitFunctionCall(FormulaParser.FunctionCallContext ctx) {
+        String fnRaw = ctx.IDENT().getText();
+        String fnLower = fnRaw.toLowerCase(Locale.ROOT);
+
+        // 1) Lookup function in registry
+        FunctionSignature signature = FunctionRegistry.get(fnLower)
+                .orElseThrow(() -> new ValidationException("Unsupported function: " + fnRaw));
+
+        // 2) Count arguments
+        List<FormulaParser.ExprContext> argExprs =
+                (ctx.argList() != null) ? ctx.argList().expr() : List.of();
+
+        int argCount = argExprs.size();
+        int minArgs = signature.minArity;           // <-- use field
+        Optional<Integer> maxArgsOpt = signature.maxArity; // <-- use field
+
+        // 3) Validate arity
+        if (argCount < minArgs) {
+            throw new ValidationException(
+                    "Function " + fnRaw + " expects at least " + minArgs +
+                            " argument(s), got " + argCount
+            );
+        }
+        if (maxArgsOpt.isPresent() && argCount > maxArgsOpt.get()) {
+            throw new ValidationException(
+                    "Function " + fnRaw + " expects at most " + maxArgsOpt.get() +
+                            " argument(s), got " + argCount
+            );
         }
 
-        List<String> args = new ArrayList<>();
-        if (ctx.argList() != null) {
-            for (FormulaParser.ExprContext e : ctx.argList().expr()) {
-                args.add(visit(e)); // recursively process (validates nested concat/variables)
-            }
-        }
+        // 4) Recursively visit arguments (validates variables, nested functions, etc.)
+        List<String> args = argExprs.stream()
+                .map(this::visit)
+                .collect(Collectors.toList());
 
         if (args.isEmpty()) {
-            throw new ValidationException("concat(...) requires at least 1 argument.");
+            // Should be impossible if minArgs >= 1, but keep defensive
+            throw new ValidationException("Function " + fnRaw + " requires at least 1 argument.");
         }
 
-        // Emit Postgres-friendly SQL
-        if (useConcatFunction) {
-            // CONCAT(varargs)
-            return "concat(" + String.join(", ", args) + ")";
-        } else {
-            // a || b || c (needs care for NULLs — wrap with coalesce if you want non-null outputs)
-            // Example: coalesce(a,'') || coalesce(b,'') || ' ' || coalesce(c,'')
-            return args.stream()
-                    .map(this::wrapForNullSafeConcat)
-                    .collect(Collectors.joining(" || "));
+        // 5) Emit SQL depending on function
+        switch (fnLower) {
+            case "concat":
+                return buildConcatSql(args);
+            case "substring":
+                return buildSubstringSql(args);
+            case "upper":
+            case "lower":
+                return fnLower + "(" + args.get(0) + ")";
+            default:
+                throw new ValidationException("No SQL generator implemented for function: " + fnRaw);
         }
     }
 
@@ -60,7 +94,10 @@ public class FormulaSqlVisitor extends FormulaBaseVisitor<String> {
         if (ctx.VARIABLE() != null) {
             String raw = ctx.VARIABLE().getText(); // like "$first_name"
             String name = raw.substring(1);        // strip leading $
+
             validateVariableName(name);
+            referencedVariables.add(name);
+
             return quoteIdentifierIfNeeded(name);
         } else if (ctx.STRING() != null) {
             return normalizeStringLiteral(ctx.STRING().getText());
@@ -70,43 +107,43 @@ public class FormulaSqlVisitor extends FormulaBaseVisitor<String> {
 
     // ---------- helpers ----------
 
+    private String buildConcatSql(List<String> args) {
+        if (useConcatFunction) {
+            return "concat(" + String.join(", ", args) + ")";
+        } else {
+            return args.stream()
+                    .map(this::wrapForNullSafeConcat)
+                    .collect(Collectors.joining(" || "));
+        }
+    }
+
+    private String buildSubstringSql(List<String> args) {
+        // Registry already enforced min/max args: substring(text, from[, len])
+        return "substring(" + String.join(", ", args) + ")";
+    }
+
     private void validateVariableName(String name) {
         if (!allowedVariables.contains(name)) {
             throw new ValidationException("Unknown variable: $" + name);
         }
     }
 
-    /**
-     * Return a SQL identifier. Simple approach: if it’s not strictly [a-z_][a-z0-9_]*, then double-quote it.
-     */
     private String quoteIdentifierIfNeeded(String ident) {
         if (ident.matches("[a-z_][a-z0-9_]*")) {
             return ident;
         }
-        // Escape embedded double quotes by doubling them
         String escaped = ident.replace("\"", "\"\"");
         return "\"" + escaped + "\"";
     }
 
-    /**
-     * Normalize single-quoted string. We accept the token as-is (already quoted).
-     * Optionally, you can unescape/re-escape. Here we ensure it's valid SQL literal.
-     */
     private String normalizeStringLiteral(String tokenText) {
-        // tokenText includes the surrounding quotes.
-        // Make sure embedded single quotes are doubled for Postgres.
         String inner = tokenText.substring(1, tokenText.length() - 1)
-                .replace("\\'", "'");         // lexer allows \' — convert to plain '
-        inner = inner.replace("'", "''");      // SQL escape
+                .replace("\\'", "'");     // lexer allows \' — convert to plain '
+        inner = inner.replace("'", "''"); // SQL escape
         return "'" + inner + "'";
     }
 
-    /**
-     * For "||" mode: wrap expressions with COALESCE(expr,'') to avoid NULL propagation.
-     * If you don't want that behavior, just return expr.
-     */
     private String wrapForNullSafeConcat(String expr) {
-        // Treat literals differently: string literal is already safe
         if (expr.startsWith("'") && expr.endsWith("'")) {
             return expr;
         }
