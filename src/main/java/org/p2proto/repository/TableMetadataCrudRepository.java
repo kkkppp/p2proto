@@ -124,27 +124,24 @@ public class TableMetadataCrudRepository {
         Map<String, Object> src = (rowData == null) ? new HashMap<>() : new HashMap<>(rowData);
 
         // defaults
+        Map<String, Object> out = new LinkedHashMap<>();
         for (ColumnMetaData c : meta.getColumns()) {
-            if (c.getDomain() != null && c.getDomain().isAutoIncrement()) continue;
-            if (isBlank(src.get(c.getName())) && c.getDefaultValue() != null) {
+            String name = c.getName();
+            DomainType domain = c.getDomain();
+            if (domain != null && (domain.isAutoIncrement() || domain.isVirtual())) continue;
+            if (isBlank(src.get(name)) && c.getDefaultValue() != null) {
                 Object def = getDefaultValue(c, insert);
                 if (def != null) src.put(c.getName(), def);
             }
-        }
-
-        Map<String, Object> out = new LinkedHashMap<>();
-        for (ColumnMetaData c : meta.getColumns()) {
-            if (c.getDomain() != null && c.getDomain().isAutoIncrement()) continue;
-            String name = c.getName();
             if (!src.containsKey(name)) continue;
 
             Object val = src.get(name);
 
-            if ("PASSWORD".equalsIgnoreCase(c.getDomain().getInternalName()) && PASSWORD_MASK.equals(val)) {
-                continue; // ignore masked password (no change)
+            if ("PASSWORD".equalsIgnoreCase(domain.getInternalName()) && PASSWORD_MASK.equals(val)) {
+                continue;
             }
 
-            Object dbv = getDBValue(c.getDomain(), val);
+            Object dbv = getDBValue(domain, val);
             // keep explicit nulls to allow clearing fields
             out.put(name, dbv);
         }

@@ -40,7 +40,7 @@ public class ColumnMetaData {
     private FieldType mapDataTypeToFieldType(org.p2proto.domain.DomainType domain) {
         String name = domain.getInternalName();
         return switch (name) {
-            case "TEXT" -> FieldType.TEXT;
+            case "TEXT", "FORMULA" -> FieldType.TEXT;
             case "DATE" -> FieldType.DATE;
             case "DATETIME" -> FieldType.DATETIME;
             case "UUID", "INTEGER", "AUTOINCREMENT" -> FieldType.NUMBER;
